@@ -1,0 +1,580 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="c31834f0-e2fe-476d-b8c6-14c92e95c67c" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_pairwise_corr_for_wrapper.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../MATLAB/abcd-dicom2bids/src/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/../MATLAB/abcd-dicom2bids/src/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../MATLAB/abcd-dicom2bids/src/data_gatherer.m" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../mysql_scripts/admin_mysql.py" beforeDir="false" afterPath="$PROJECT_DIR$/../mysql_scripts/admin_mysql.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_matrix.m" beforeDir="false" afterPath="$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_matrix.m" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_pairwise_corr_exaversion.m" beforeDir="false" afterPath="$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_pairwise_corr_exaversion.m" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_template.m" beforeDir="false" afterPath="$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_template.m" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_template_exaversion.m" beforeDir="false" afterPath="$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_template_exaversion.m" afterDir="false" />
+    </list>
+    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="DaemonCodeAnalyzer">
+    <disable_hints>
+      <file url="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_matrix.m" />
+    </disable_hints>
+  </component>
+  <component name="FileEditorManager">
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/cifti_conn_wrapper.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="485">
+              <caret line="173" column="27" selection-start-line="173" selection-start-column="11" selection-end-line="173" selection-end-column="27" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/README.md">
+          <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+            <state split_layout="SPLIT">
+              <first_editor relative-caret-position="443">
+                <caret line="78" column="32" selection-start-line="78" selection-start-column="32" selection-end-line="78" selection-end-column="32" />
+              </first_editor>
+              <second_editor />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/Test_and_error_log.md">
+          <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+            <state split_layout="SPLIT">
+              <first_editor relative-caret-position="435">
+                <caret line="50" column="37" selection-start-line="50" selection-start-column="37" selection-end-line="50" selection-end-column="37" />
+              </first_editor>
+              <second_editor />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_pairwise_corr_for_wrapper.sh">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="300">
+              <caret line="20" column="32" selection-start-line="20" selection-start-column="32" selection-end-line="20" selection-end-column="32" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="FindInProjectRecents">
+    <findStrings>
+      <find>244</find>
+      <find>keep_conn_matrices</find>
+      <find>template does not exist</find>
+      <find>keep_conn</find>
+      <find>template</find>
+      <find>.template</find>
+      <find>smoothing_kernel</find>
+      <find>access</find>
+      <find>GROUP_DTSERIES_CONC</find>
+      <find>keep</find>
+      <find>script_to_ru</find>
+      <find>i</find>
+      <find>i]</find>
+      <find>validate_readable_file</find>
+      <find>wb_command</find>
+      <find>-m</find>
+      <find>get_template_file_name</find>
+      <find>template file</find>
+      <find>GROUP_PTSERIES_CONC</find>
+      <find>script_cho</find>
+      <find>SCRIPT_MATRIX</find>
+      <find>validate_and_get_output_dir</find>
+      <find>get_template_file_path</find>
+      <find>make_conn_conc</find>
+      <find>additional_mask</find>
+      <find>&quot;-s</find>
+      <find>parent</find>
+      <find>motion</find>
+      <find>default value is</find>
+      <find>conn_matrices</find>
+    </findStrings>
+    <replaceStrings>
+      <replace>kernel</replace>
+      <replace>beta8</replace>
+      <replace>function_to_run</replace>
+      <replace>input</replace>
+    </replaceStrings>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien" />
+  </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_template_for_wrapper.m" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_matrix.m" root0="SKIP_HIGHLIGHTING" />
+  </component>
+  <component name="IdeDocumentHistory">
+    <option name="CHANGED_PATHS">
+      <list>
+        <option value="$PROJECT_DIR$/../MATLAB/abcd-dicom2bids/src/unpack_and_setup.sh" />
+        <option value="$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_matrix.m" />
+        <option value="$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_template_exaversion.m" />
+        <option value="$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_matrix_rushmore.m" />
+        <option value="$PROJECT_DIR$/cifti_conn_matrix_for_wrapper.m" />
+        <option value="$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/run_cifti_conn_matrix_for_wrapper.py" />
+        <option value="$PROJECT_DIR$/run_cifti_conn_matrix_for_wrapper.sh" />
+        <option value="$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/src/cifti_conn_matrix_for_wrapper.m" />
+        <option value="$PROJECT_DIR$/cifti_conn_template_for_wrapper.m" />
+        <option value="$PROJECT_DIR$/../MATLAB/abcd-dicom2bids/src/README.md" />
+        <option value="$PROJECT_DIR$/../MATLAB/abcd-dicom2bids/README.md" />
+        <option value="$PROJECT_DIR$/../MATLAB/abcd-dicom2bids/abcd2bids.py" />
+        <option value="$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_template_for_wrapper.m" />
+        <option value="$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_pairwise_corr_exaversion.m" />
+        <option value="$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/run_cifti_conn_matrix_for_wrapper.sh" />
+        <option value="$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_pairwise_corr_for_wrapper.sh" />
+        <option value="$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_template_for_wrapper.sh" />
+        <option value="$PROJECT_DIR$/run_cifti_wrapper_all.sh" />
+        <option value="$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/compile.sh" />
+        <option value="$PROJECT_DIR$/compile.sh" />
+        <option value="$PROJECT_DIR$/cifti_conn_wrapper.py" />
+        <option value="$PROJECT_DIR$/src/README.md" />
+        <option value="$PROJECT_DIR$/raw/README.md" />
+        <option value="$PROJECT_DIR$/data/README.md" />
+        <option value="$PROJECT_DIR$/README.md" />
+      </list>
+    </option>
+  </component>
+  <component name="ProjectFrameBounds">
+    <option name="x" value="397" />
+    <option name="y" value="31" />
+    <option name="width" value="1522" />
+    <option name="height" value="910" />
+  </component>
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectView">
+    <navigator proportions="" version="1">
+      <foldersAlwaysOnTop value="true" />
+    </navigator>
+    <panes>
+      <pane id="ProjectPane">
+        <subPane>
+          <expand>
+            <path>
+              <item name="cifti_conn_wrapper" type="b2602c69:ProjectViewProjectNode" />
+              <item name="cifti_conn_wrapper" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="cifti_conn_wrapper" type="b2602c69:ProjectViewProjectNode" />
+              <item name="cifti_conn_wrapper" type="462c0819:PsiDirectoryNode" />
+              <item name="raw" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="cifti_conn_wrapper" type="b2602c69:ProjectViewProjectNode" />
+              <item name="hcp_comm_det_damien" type="462c0819:PsiDirectoryNode" />
+            </path>
+          </expand>
+          <select />
+        </subPane>
+      </pane>
+      <pane id="Scope" />
+    </panes>
+  </component>
+  <component name="PropertiesComponent">
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien" />
+    <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
+    <property name="nodejs_npm_path_reset_for_default_project" value="true" />
+    <property name="settings.editor.selected.configurable" value="project.propVCSSupport.Mappings" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien" />
+    </key>
+  </component>
+  <component name="RunDashboard">
+    <option name="ruleStates">
+      <list>
+        <RuleState>
+          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
+        </RuleState>
+        <RuleState>
+          <option name="name" value="StatusDashboardGroupingRule" />
+        </RuleState>
+      </list>
+    </option>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="c31834f0-e2fe-476d-b8c6-14c92e95c67c" name="Default Changelist" comment="" />
+      <created>1560875158754</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1560875158754</updated>
+      <workItem from="1560875160207" duration="6690000" />
+      <workItem from="1560891230756" duration="495000" />
+      <workItem from="1560892902575" duration="4673000" />
+      <workItem from="1560959513171" duration="23773000" />
+      <workItem from="1561045629018" duration="1623000" />
+      <workItem from="1561047519017" duration="7796000" />
+      <workItem from="1561059555791" duration="9113000" />
+      <workItem from="1561132302546" duration="5935000" />
+      <workItem from="1561149584993" duration="7680000" />
+      <workItem from="1561392140628" duration="9145000" />
+      <workItem from="1561405849985" duration="10362000" />
+      <workItem from="1561478311955" duration="23751000" />
+      <workItem from="1561566366778" duration="1338000" />
+      <workItem from="1561584002422" duration="5258000" />
+      <workItem from="1561651671234" duration="240000" />
+      <workItem from="1561656209468" duration="639000" />
+      <workItem from="1561672495500" duration="1585000" />
+      <workItem from="1561754382511" duration="2521000" />
+      <workItem from="1561760458439" duration="2442000" />
+      <workItem from="1561996424511" duration="66433000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TimeTrackingManager">
+    <option name="totallyTimeSpent" value="191492000" />
+  </component>
+  <component name="ToolWindowManager">
+    <frame x="397" y="31" width="1522" height="910" extended-state="0" />
+    <editor active="true" />
+    <layout>
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.31953868" />
+      <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
+      <window_info id="Favorites" order="2" side_tool="true" />
+      <window_info anchor="bottom" id="Message" order="0" />
+      <window_info anchor="bottom" id="Find" order="1" />
+      <window_info anchor="bottom" id="Run" order="2" />
+      <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
+      <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
+      <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
+      <window_info anchor="bottom" id="TODO" order="6" />
+      <window_info anchor="bottom" id="Docker" order="7" show_stripe_button="false" />
+      <window_info anchor="bottom" id="Version Control" order="8" />
+      <window_info anchor="bottom" id="Event Log" order="9" side_tool="true" />
+      <window_info anchor="bottom" id="Terminal" order="10" weight="0.32951653" />
+      <window_info anchor="bottom" id="Python Console" order="11" />
+      <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
+      <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
+      <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
+      <window_info anchor="right" id="SciView" order="3" />
+    </layout>
+    <layout-to-restore>
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.31154382" />
+      <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
+      <window_info id="Favorites" order="2" side_tool="true" />
+      <window_info anchor="bottom" id="Message" order="0" />
+      <window_info anchor="bottom" id="Find" order="1" />
+      <window_info anchor="bottom" id="Run" order="2" />
+      <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
+      <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
+      <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
+      <window_info anchor="bottom" id="TODO" order="6" />
+      <window_info anchor="bottom" id="Docker" order="7" show_stripe_button="false" />
+      <window_info anchor="bottom" id="Version Control" order="8" />
+      <window_info anchor="bottom" id="Event Log" order="9" side_tool="true" />
+      <window_info anchor="bottom" id="Terminal" order="10" weight="0.32951653" />
+      <window_info anchor="bottom" id="Python Console" order="11" />
+      <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
+      <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
+      <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
+      <window_info anchor="right" id="SciView" order="3" />
+    </layout-to-restore>
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="1" />
+  </component>
+  <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/../MATLAB/abcd-dicom2bids/src/nda_aws_token_maker.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="10">
+          <caret line="21" column="40" selection-start-line="21" selection-start-column="40" selection-end-line="21" selection-end-column="40" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../MATLAB/abcd-dicom2bids/src/config.ini" />
+    <entry file="file://$PROJECT_DIR$/../MATLAB/abcd-dicom2bids/src/run_eta_squared.sh">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_matrix.m">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="296">
+          <caret line="461" column="68" selection-start-line="461" selection-start-column="68" selection-end-line="461" selection-end-column="68" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_matrix.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="165">
+          <caret line="11" column="80" selection-start-line="11" selection-start-column="80" selection-end-line="11" selection-end-column="80" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/cifti_conn_exaversion_greg.m" />
+    <entry file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_matrix_rushmore.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="375">
+          <caret line="25" column="43" lean-forward="true" selection-start-line="25" selection-start-column="43" selection-end-line="25" selection-end-column="43" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/cifti_conn_matrix_greg.m" />
+    <entry file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_template_exaversion.m">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="165">
+          <caret line="11" column="49" selection-start-line="11" selection-start-column="49" selection-end-line="11" selection-end-column="49" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/run_cifti_conn_matrix_for_wrapper.py" />
+    <entry file="file://$PROJECT_DIR$/run_cifti_conn_matrix_for_wrapper.sh" />
+    <entry file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/src/run_cifti_conn_matrix_for_wrapper.sh" />
+    <entry file="file://$PROJECT_DIR$/cifti_conn_matrix_for_wrapper.m" />
+    <entry file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_matrix_rushmore.m">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="15">
+          <caret line="1" lean-forward="true" selection-start-line="1" selection-end-line="1" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/src/cifti_conn_matrix_for_wrapper.m" />
+    <entry file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_template.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="105">
+          <caret line="7" selection-start-line="7" selection-end-line="7" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_matrix_exaversion.m">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="720">
+          <caret line="48" column="4" selection-start-line="48" selection-start-column="4" selection-end-line="48" selection-end-column="4" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/cifti_conn_template_for_wrapper.m" />
+    <entry file="file://$PROJECT_DIR$/../mysql_scripts/add_MySQL_user.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="120">
+          <caret line="8" column="46" lean-forward="true" selection-start-line="8" selection-start-column="46" selection-end-line="8" selection-end-column="46" />
+          <folding>
+            <element signature="e#0#14#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../MATLAB/abcd-dicom2bids/src/README.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="SPLIT">
+          <first_editor relative-caret-position="30">
+            <caret line="2" column="94" selection-start-line="2" selection-start-column="94" selection-end-line="2" selection-end-column="94" />
+          </first_editor>
+          <second_editor />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../MATLAB/abcd-dicom2bids/src/unpack_and_setup.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="90">
+          <caret line="6" column="27" selection-start-line="6" selection-start-column="27" selection-end-line="6" selection-end-column="27" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../MATLAB/abcd-dicom2bids/abcd2bids.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="225">
+          <caret line="303" lean-forward="true" selection-start-line="303" selection-end-line="303" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../MATLAB/abcd-dicom2bids/README.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="SPLIT">
+          <first_editor relative-caret-position="216">
+            <caret line="70" column="430" selection-start-line="70" selection-start-column="430" selection-end-line="70" selection-end-column="430" />
+          </first_editor>
+          <second_editor />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/isthisanoutlier.m">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_template_for_wrapper.m">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="360">
+          <caret line="258" column="43" selection-start-line="258" selection-start-column="43" selection-end-line="258" selection-end-column="43" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_pairwise_corr.m">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <caret column="35" lean-forward="true" selection-start-column="35" selection-end-column="89" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_template.m">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/run_cifti_conn_pairwise_corr_exaversion.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="75">
+          <caret line="5" column="1" lean-forward="true" selection-start-line="5" selection-start-column="1" selection-end-line="5" selection-end-column="1" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/run_cifti_conn_matrix_exaversion.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="360">
+          <caret line="24" column="48" selection-start-line="24" selection-start-column="48" selection-end-line="24" selection-end-column="48" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/run_cifti_conn_matrix_for_wrapper.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="105">
+          <caret line="7" column="110" selection-start-line="7" selection-start-column="110" selection-end-line="7" selection-end-column="110" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_pairwise_corr.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="225">
+          <caret line="15" column="4" selection-start-line="15" selection-start-column="4" selection-end-line="15" selection-end-column="4" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_pairwise_corr_exaversion.m">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <caret column="132" selection-start-column="124" selection-end-column="132" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/run_cifti_wrapper_all.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="645">
+          <caret line="43" column="72" selection-start-line="43" selection-start-column="72" selection-end-line="43" selection-end-column="72" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_template_for_wrapper.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="120">
+          <caret line="8" column="70" selection-start-line="8" selection-start-column="70" selection-end-line="8" selection-end-column="70" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/compile.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="345">
+          <caret line="23" column="149" selection-start-line="23" selection-start-column="149" selection-end-line="23" selection-end-column="149" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/run_cifti_conn_template_for_wrapper.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="165">
+          <caret line="11" column="22" lean-forward="true" selection-start-line="11" selection-start-column="22" selection-end-line="11" selection-end-column="35" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/compile.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="375">
+          <caret line="25" selection-start-line="25" selection-end-line="25" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_pairwise_corr_for_wrapper.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="300">
+          <caret line="20" column="32" selection-start-line="20" selection-start-column="32" selection-end-line="20" selection-end-column="32" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../shared/code/internal/utilities/hcp_comm_det_damien/README.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="SPLIT">
+          <first_editor relative-caret-position="315">
+            <caret line="21" column="12" selection-start-line="21" selection-start-column="12" selection-end-line="21" selection-end-column="12" />
+          </first_editor>
+          <second_editor />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/README.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="SPLIT">
+          <first_editor>
+            <caret selection-end-line="3" />
+          </first_editor>
+          <second_editor />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/data/README.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="SPLIT">
+          <first_editor relative-caret-position="30">
+            <caret line="2" column="30" selection-start-line="2" selection-start-column="30" selection-end-line="2" selection-end-column="30" />
+          </first_editor>
+          <second_editor />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/raw/README.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="SPLIT">
+          <first_editor relative-caret-position="30">
+            <caret line="2" column="16" selection-start-line="2" selection-start-column="16" selection-end-line="2" selection-end-column="16" />
+          </first_editor>
+          <second_editor />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Test_and_error_log.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="SPLIT">
+          <first_editor relative-caret-position="435">
+            <caret line="50" column="37" selection-start-line="50" selection-start-column="37" selection-end-line="50" selection-end-column="37" />
+          </first_editor>
+          <second_editor />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/cifti_conn_wrapper.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="485">
+          <caret line="173" column="27" selection-start-line="173" selection-start-column="11" selection-end-line="173" selection-end-column="27" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/README.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="SPLIT">
+          <first_editor relative-caret-position="443">
+            <caret line="78" column="32" selection-start-line="78" selection-start-column="32" selection-end-line="78" selection-end-column="32" />
+          </first_editor>
+          <second_editor />
+        </state>
+      </provider>
+    </entry>
+  </component>
+</project>

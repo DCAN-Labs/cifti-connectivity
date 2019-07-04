@@ -205,7 +205,7 @@ def get_cli_args():
               + " will be used as the default name.")
     )
 
-    # Option: Specify whether to use beta file size reduction fo dconns
+    # Option: Specify whether to use beta file size reduction for dconns
     parser.add_argument(
         "-b",
         "--beta8",

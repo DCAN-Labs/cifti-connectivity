@@ -5,3 +5,4 @@ data/*
 Test_and_error_log.md
 cleaned_up_cifti_conn_template.m
 2019-*/
+.idea/

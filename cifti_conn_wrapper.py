@@ -4,7 +4,7 @@
 CIFTI conn wrapper
 Greg Conan: conan@ohsu.edu
 Created 2019-06-18
-Last Updated 2019-07-03
+Last Updated 2019-07-05
 """
 
 ##################################
@@ -53,7 +53,7 @@ MRE_RUSHMORE = ("/mnt/max/shared/code/external/utilities/Matlab2016bRuntime/"
                 "v91")
 
 # Default names of wrapped scripts to run
-SCRIPT_MATRIX = "run_cifti_conn_matrix_exaversion.sh"
+SCRIPT_MATRIX = "run_cifti_conn_matrix_for_wrapper.sh"
 SCRIPT_PAIRWISE_CORR = "run_cifti_conn_pairwise_corr_exaversion.sh"
 SCRIPT_TEMPLATE = "run_cifti_conn_template_for_wrapper.sh"
 
@@ -92,11 +92,18 @@ def get_cli_args():
         description="Wrapper to generate connectivity matrices."
     )
 
-    # Required arguments: Time series filename and script(s) to run
+    # Required arguments: Time series filename, repetition time of scan, and
+    # script(s) to run
     parser.add_argument(
         "series_file",
         help=("Name of dense or parcellated timeseries .conc file (i.e. text "
               "file with paths to each file being examined).")
+    )
+    parser.add_argument(
+        "tr",
+        type=none_or_valid_float_value_as_string,
+        help=("Specify the repetition time (time interval between frames of a "
+              "scan) for your data.")
     )
     parser.add_argument(
         "scripts_to_run",
@@ -144,16 +151,6 @@ def get_cli_args():
         help=("Specify motion threshold (maximum amount of acceptable motion "
               "between frames of a scan) for your data. Default value is "
               + default_fd_threshold)
-    )
-
-    # Optional: Get repetition time
-    default_tr = "2.5"
-    parser.add_argument(
-        "--tr",
-        default=default_tr,
-        type=none_or_valid_float_value_as_string,
-        help=("Specify the repetition time (time interval between frames of a "
-              "scan) for your data. Default value is " + default_tr)
     )
 
     # Optional: Get minutes limit
@@ -257,6 +254,38 @@ def get_cli_args():
         help="Path to workbench command file."
     )
 
+    # Optional: Get name of additional mask to put on top of FD threshold
+    parser.add_argument(
+        "-a",
+        "--additional_mask",
+        default="none",
+        help=("Additional mask on top of the FD threshold. This mask can be "
+              "used to extract rests between blocks of task. This vector of "
+              "ones and zeros should be the same length as your dtseries.")
+    )
+
+    # Optional: Specify whether to remove outliers from BOLD signal
+    parser.add_argument(
+        "--remove_outliers",
+        action="store_const",
+        const="1",
+        default="0",
+        help=("If this flag is included, then outliers will be removed from "
+              "the BOLD signal. Otherwise, frames will only be censored by "
+              "the FD threshold.")
+    )
+
+    # Optional: Specify whether to make list of conn matrices made by wrapper
+    parser.add_argument(
+        "-c",
+        "--make_conn_conc",
+        action="store_const",
+        const="1",
+        default="0",
+        help=("Make a list of connectivity matrices created by this wrapper. "
+              "By default, the wrapper will not make a list.")
+    )
+
     return validate_cli_args(parser.parse_args(), parser)
 
 
@@ -302,8 +331,11 @@ def validate_cli_args(cli_args, parser):
                          ".ptseries.nii or .dtseries.nii file paths.")
     cli_args.__setattr__("time_series", time_series)
 
-    # Add list of connectivity matrices to CLI args namespace
-    cli_args.__setattr__("conn_matrices", get_conn_matrices_list(cli_args))
+    # Add list of connectivity matrices to CLI args namespace if pairwise_corr
+    # is being run
+    if CHOICES_TO_RUN[2] in cli_args.scripts_to_run:
+        cli_args.__setattr__("conn_matrices", get_conn_matrices_list(cli_args))
+        cli_args = validate_readable_file("conn_matrices", cli_args, parser)
 
     # Return cli_args with workbench command, MRE dir, and template file added
     return add_wb_command_mre_dir_and_template_to(cli_args, parser)
@@ -443,7 +475,8 @@ def add_wb_command_mre_dir_and_template_to(cli_args, parser):
             parser.error("Please enter a MATLAB Runtime Environment directory "
                          "using the --mre_dir flag.")
         if not os.access(cli_args.mre_dir, os.R_OK):
-            parser.error("Cannot read MRE directory.")
+            parser.error("Cannot read MATLAB Runtime Environment directory at "
+                         + cli_args.mre_dir)
 
     # If no template file name was given, then make one
     if not cli_args.template:
@@ -492,7 +525,7 @@ def get_wb_command():
             while not command_found:
                 wb_command = input(
                     "Please enter a valid path to a workbench command, or "
-                    "enter 'q' to quit:"
+                    "enter 'q' to quit: "
                 )
                 if wb_command == "q":
                     sys.exit(1)
@@ -555,8 +588,21 @@ def get_matrix_or_template_parameters(cli_args):
         cli_args.left,
         cli_args.right,
         cli_args.beta8,
-        cli_args.output
     ])
+
+
+def will_delete_conn_matrices_later(cli_args):
+    """
+    Checks whether this wrapper should keep connectivity matrices until done
+    running cifti_conn_pairwise corr and then delete them afterwards.
+    :param cli_args: argparse namespace with all command-line arguments
+    :return: True if user said not to keep connectivity matrices even though
+    they are needed to run cifti_conn_pairwise_corr, and False otherwise.
+    """
+    return (
+        cli_args.keep_conn_matrices == "0"
+        and CHOICES_TO_RUN[2] in cli_args.scripts_to_run
+    )
 
 
 def cifti_conn_matrix(cli_args):
@@ -566,8 +612,16 @@ def cifti_conn_matrix(cli_args):
     :param cli_args: argparse namespace with all command-line arguments
     :return: N/A
     """
+    # Get all parameters to pass to matrix script, including its options
+    parameters = get_matrix_or_template_parameters(cli_args)
+    parameters.append(cli_args.remove_outliers)
+    parameters.append(cli_args.additional_mask)
+    parameters.append(cli_args.make_conn_conc)
+    parameters.append(cli_args.output)
+
+    # Call matrix script
     subprocess.check_call([DEFAULT_SOURCE + SCRIPT_MATRIX, cli_args.mre_dir]
-                          + get_matrix_or_template_parameters(cli_args))
+                          + parameters)
 
 
 def cifti_conn_template(cli_args):
@@ -577,10 +631,17 @@ def cifti_conn_template(cli_args):
     :param cli_args: argparse namespace with all command-line arguments
     :return: N/A
     """
+    # If user is running pairwise_corr, keep conn matrices until that finishes
+    if will_delete_conn_matrices_later(cli_args):
+        print("Warning: CIFTI conn matrix files will not be deleted until "
+              + CHOICES_TO_RUN[2] + " finishes running.")
+        cli_args.keep_conn_matrices = "1"
+
     # Get required parameters for cifti_conn_template script
     parameters = get_matrix_or_template_parameters(cli_args)
     parameters.append(cli_args.keep_conn_matrices)
     parameters.append(cli_args.template)
+    parameters.append(cli_args.output)
 
     # Call cifti_conn_template script
     subprocess.check_call([DEFAULT_SOURCE + SCRIPT_TEMPLATE, cli_args.mre_dir]
@@ -609,6 +670,17 @@ def cifti_conn_pairwise_corr(cli_args):
     # Call cifti_conn_pairwise_corr script
     subprocess.check_call([DEFAULT_SOURCE + SCRIPT_PAIRWISE_CORR,
                            cli_args.mre_dir] + parameters)
+
+    # If user said not to keep conn matrices but pairwise_corr used them,
+    # then try to delete the conn matrices after pairwise_corr finishes
+    if will_delete_conn_matrices_later(cli_args):
+        try:
+            with open(cli_args.conn_matrices) as infile:
+                for line in infile:
+                    print("Deleting " + line)
+                    Path(line.strip()).unlink()
+        except FileNotFoundError as e:
+            print("Could not find file at " + e.filename)
 
 
 if __name__ == '__main__':

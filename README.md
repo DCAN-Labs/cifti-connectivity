@@ -22,16 +22,17 @@ Any of the three matrix, template, or pairwise_corr functions can be completed b
 ### Required Positional Arguments
  
 1. `series_file` is one argument, a path to the dense timeseries (`dtseries`) or parcellated timeseries (`ptseries`) `.conc` file. A `.conc` file is a text file with paths to each file being examined.
-2. `scripts_to_run` is one or more argument(s), the name(s) of each script that you want to run.
+2. `tr` takes the repetition time (time interval between frames of a scan) for your data as a floating-point number.
+3. `scripts_to_run` is one or more argument(s), the name(s) of each script that you want to run.
 
-Those arguments must be given in that order: `series_file` first, `scripts_to_run` second. For example, here is a valid basic call of this wrapper:
+Those arguments must be given in that order: `series_file` first, `tr` second, and `scripts_to_run` last. For example, here is a valid basic call of this wrapper:
 ```
-python3 cifti_conn_wrapper.py ./raw/group_ptseries.conc cifti_conn_matrix
+python3 cifti_conn_wrapper.py ./raw/group_ptseries.conc 2.5 cifti_conn_matrix
 ```
 
 This wrapper can run any combination of the three scripts in any order. To run multiple scripts, list all of their names in the order that you want the wrapper to run them. Here is an example call which will run all three scripts in order:
 ```
-python3 cifti_conn_wrapper.py ./raw/group_ptseries.conc cifti_conn_matrix cifti_conn_template cifti_conn_pairwise_corr
+python3 cifti_conn_wrapper.py ./raw/group_ptseries.conc 2.5 cifti_conn_matrix cifti_conn_template cifti_conn_pairwise_corr
 ```
 
 For more usage information, call this script with the `--help` command: `python3 cifti_conn_wrapper.py --help`
@@ -48,17 +49,21 @@ If these arguments are excluded, then by default the wrapper will use hardcoded 
 
 These arguments can be included without a value.
 
-`--keep_conn_matrices` will make the wrapper keep the `dconn/pconn` files after creating them. Otherwise, it will delete the `d/pconns` after adding them to the average `d/pconn`. ___This option is required___ to run `cifti_conn_pairwise_corr`, which compares the `dconn/pconn` files to the average file created by `cifti_conn_template`.
+`--keep_conn_matrices` will make the wrapper keep the `dconn/pconn` files after creating them. Otherwise, it will delete the `d/pconns` after adding them to the average `d/pconn`. The `d/pconn` files are needed to run `cifti_conn_pairwise_corr`, which compares the `d/pconn` files to the average file created by `cifti_conn_template`. So if this flag is excluded and `cifti_conn_pairwise_corr` is run, then the `d/pconn` files will be kept until the `pairwise_corr` script finishes.
 
 `--beta8` will run a beta version to reduce file size. Include this flag to reduce floating point precision and discard lower triangle of matrix. Exclude it to leave the same.  If included, this will produce 8Gb `.dconns`. Otherwise, this will make 32Gb `.dconns`. This option does nothing for `ptseries`.
+
+`--make_conn_conc` will make a list of connectivity matrices created by this wrapper. By default, the wrapper will not make a list.
+
+`--remove_outliers`
+
+`--additional_mask`
 
 ### Optional Arguments: Numerical Values
 
 `--smoothing_kernel` takes the smoothing kernel as one floating-point number. Only include this argument if smoothing will be used. Smoothing on ptseries is not supported. The default value is 'none'.
 
 `--minutes` takes the minutes limit as one floating-point number. The minutes limit is the number of minutes to be used to generate the correlation matrix. The default minutes limit of 'none' will make an `allframesbelowFDX` `.dconn` file. Subjects will have differing numbers of time points that go into each `.dconn`.
-
-`--tr` takes the repetition time (time interval between frames of a scan) for your data as a floating-point number. The default value is `2.5`.
 
 `--fd_threshold` takes the motion threshold (maximum amount of acceptable motion between frames of a scan) for your data as a floating-point number. The default value is `0.2`.
 
@@ -80,7 +85,7 @@ Each of the arguments below accepts one value, a valid file or directory path. E
 
 ### Advanced Usage Example
 ```
-python3 cifti_conn_wrapper.py ./raw/dtseries_file.conc cifti_conn_matrix cifti_conn_template --beta8 --keep_conn_matrices --motion none --tr 3 --template <Name of template file to be made> --output <Directory where output data will be placed> 
+python3 cifti_conn_wrapper.py ./raw/dtseries_file.conc 3.0 cifti_conn_matrix cifti_conn_template --beta8 --keep_conn_matrices --motion none --template <Name of template file to be made> --output <Directory where output data will be placed> 
 ```
 
 ## Expected Naming Convention for Input Imaging Data 

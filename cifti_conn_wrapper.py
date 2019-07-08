@@ -216,7 +216,7 @@ def get_cli_args():
         help=("Beta version to reduce file size. Include this flag to reduce "
               "floating point precision and discard lower triangle of matrix. "
               "Exclude it to leave the same.  If included, this will produce "
-              "8Gb .dconns. Otherwise, this will make 32Gb .dconns. This "
+              "8Gb .dconns. Otherwise, this will make 33Gb .dconns. This "
               "option does nothing for ptseries.")
     )
 

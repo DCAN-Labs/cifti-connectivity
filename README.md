@@ -51,13 +51,13 @@ These arguments can be included without a value.
 
 `--keep_conn_matrices` will make the wrapper keep the `dconn/pconn` files after creating them. Otherwise, it will delete the `d/pconns` after adding them to the average `d/pconn`. The `d/pconn` files are needed to run `cifti_conn_pairwise_corr`, which compares the `d/pconn` files to the average file created by `cifti_conn_template`. So if this flag is excluded and `cifti_conn_pairwise_corr` is run, then the `d/pconn` files will be kept until the `pairwise_corr` script finishes.
 
-`--beta8` will run a beta version to reduce file size. Include this flag to reduce floating point precision and discard lower triangle of matrix. Exclude it to leave the same.  If included, this will produce 8Gb `.dconns`. Otherwise, this will make 32Gb `.dconns`. This option does nothing for `ptseries`.
+`--beta8` will run a beta version to reduce file size. Include this argument to reduce floating point precision and discard lower triangle of matrix. Exclude it to leave the same.  If included, this will produce 8Gb `.dconns`. Otherwise, this will make 32Gb `.dconns`. This option does nothing for `ptseries`.
 
 `--make_conn_conc` will make a list of connectivity matrices created by this wrapper. By default, the wrapper will not make a list.
 
-`--remove_outliers`
+`--remove_outliers` will remove outliers from the BOLD signal if this flag is included. Otherwise (by default), frames will only be censored by the FD threshold.
 
-`--additional_mask`
+`--suppress_warnings` will prevent the wrapper from asking user for confirmation if the `.dconn` files created by the wrapper will exceed a certain threshold. By default, the threshold beyond which the wrapper will warn the user is about 300 GB. This argument does nothing for `ptseries`.
 
 ### Optional Arguments: Numerical Values
 
@@ -83,9 +83,11 @@ Each of the arguments below accepts one value, a valid file or directory path. E
 
 `--template` takes the full path of a template file created by `cifti_conn_template`. If `cifti_conn_pairwise_corr` is run before running `cifti_conn_template`, this file should already exist at the specified path. By default, the wrapper will build the name of this file by combining the values of the `series_file`, `--motion`, `--fd_threshold`, and `--minutes` arguments. The wrapper will then either create or look for a file by that name in the `--output` directory if needed. This argument is unnecessary for `cifti_conn_matrix` to run.
 
+`--additional_mask` takes the path to an additional mask on top of the FD threshold. The mask should be a `.mat` file with `0`s and `1`s where `0`s are frames to be discarded and `1`s are frames to be used to make your matrix. This mask can be used to extract rests between blocks of task. This vector of ones and zeros should be the same length as your dtseries. The default value is "none".
+
 ### Advanced Usage Example
 ```
-python3 cifti_conn_wrapper.py ./raw/dtseries_file.conc 3.0 cifti_conn_matrix cifti_conn_template --beta8 --keep_conn_matrices --motion none --template <Name of template file to be made> --output <Directory where output data will be placed> 
+python3 cifti_conn_wrapper.py ./raw/dtseries_file.conc 3.0 cifti_conn_template cifti_conn_pairwise_corr --beta8 --keep_conn_matrices --motion none --template <Name of template file to be made> --output <Directory where output data will be placed> --make_conn_conc
 ```
 
 ## Expected Naming Convention for Input Imaging Data 

@@ -57,6 +57,9 @@ SCRIPT_MATRIX = "run_cifti_conn_matrix_for_wrapper.sh"
 SCRIPT_PAIRWISE_CORR = "run_cifti_conn_pairwise_corr_exaversion.sh"
 SCRIPT_TEMPLATE = "run_cifti_conn_template_for_wrapper.sh"
 
+# If .dconn files' size exceeds this many gigabytes, then warn the user
+WARNING_IF_DCONN_SIZE_EXCEEDS = 300
+
 # Workbench commands which depend on the host server
 WB_EXACLOUD = ("/home/exacloud/lustre1/fnl_lab/code/external/utilities/"
                "workbench-1.3.2/bin_rh_linux64/wb_command")
@@ -259,9 +262,12 @@ def get_cli_args():
         "-a",
         "--additional_mask",
         default="none",
-        help=("Additional mask on top of the FD threshold. This mask can be "
-              "used to extract rests between blocks of task. This vector of "
-              "ones and zeros should be the same length as your dtseries.")
+        help=("Additional mask on top of the FD threshold. The mask should be "
+              "a .mat file with 0s and 1s where 0 are frames to be discarded "
+              "and 1s are frames to be used to make your matrix. This mask "
+              "can be used to extract rests between blocks of task. This "
+              "vector of ones and zeros should be the same length as your "
+              "dtseries.")
     )
 
     # Optional: Specify whether to remove outliers from BOLD signal
@@ -284,6 +290,16 @@ def get_cli_args():
         default="0",
         help=("Make a list of connectivity matrices created by this wrapper. "
               "By default, the wrapper will not make a list.")
+    )
+
+    # Optional: Ignore warnings about output .dconn file sizes
+    parser.add_argument(
+        "--suppress_warnings",
+        action="store_true",
+        help=("By default, the wrapper will ask user for confirmation if "
+              "the .dconn files created by the wrapper will exceed "
+              + str(WARNING_IF_DCONN_SIZE_EXCEEDS) + " gigabytes. Include "
+              "this argument to ignore this warning. Irrelevant for ptseries.")
     )
 
     return validate_cli_args(parser.parse_args(), parser)
@@ -323,12 +339,28 @@ def validate_cli_args(cli_args, parser):
             cli_args = validate_readable_file(file_arg, cli_args, parser)
 
     # Infer whether series_file is dense or parcellated by reading series_file
-    # provided by user, then add dense or parcellated to CLI args namespace
-    with open(cli_args.series_file, "r") as series_file:
-        time_series = series_file.readline().split(".")[-2]
-        if time_series != "ptseries" and time_series != "dtseries":
-            parser.error("Time series file must contain only a list of "
-                         ".ptseries.nii or .dtseries.nii file paths.")
+    # provided by user
+    try:
+        with open(cli_args.series_file, "r") as series_file:
+            time_series = series_file.readline().split(".")[-2]
+
+            # If size of .dconn files to make exceeds threshold, then warn user
+            if time_series == "dtseries":
+                if (not cli_args.suppress_warnings and
+                        (CHOICES_TO_RUN[0] in cli_args.scripts_to_run or
+                         CHOICES_TO_RUN[1] in cli_args.scripts_to_run)):
+                    warn_user_about_dconn_size(series_file, cli_args)
+
+            # If invalid time series is given, then tell user and crash
+            elif time_series != "ptseries":
+                parser.error("Time series file must contain only a list of "
+                             ".ptseries.nii or .dtseries.nii file paths.")
+    except OSError:
+        print("Error: Could not read time series file paths from "
+              + cli_args.series_file)
+        sys.exit(1)
+
+    # Add whether time series is dense or parcellated to CLI args namespace
     cli_args.__setattr__("time_series", time_series)
 
     # Add list of connectivity matrices to CLI args namespace if pairwise_corr
@@ -419,6 +451,44 @@ def validate_readable_file(file_arg_name, cli_args, parser):
             parser.error(msg)
 
     return cli_args
+
+
+def warn_user_about_dconn_size(series_file, cli_args):
+    """
+    If the size of all of the .dconn files exceeds a certain threshold, then
+    tell the user and make the user approve of .dconn creation to continue
+    :param series_file: Currently-open file containing the names of all .dconn
+    files to create.
+    :param cli_args: argparse namespace with all command-line arguments
+    :param beta8: Argument specifying whether to use file size compression
+    :return: N/A
+    """
+    # Figure out how many .dconn files will be made (1 per line in series file,
+    # but only 1 if .dconn files are deleted after being added to rolling avg)
+    number_of_dconns_to_make = 1
+    if (cli_args.keep_conn_matrices == "1" or
+            will_delete_conn_matrices_later(cli_args)):
+        while series_file.readline():
+            number_of_dconns_to_make += 1
+
+    print(cli_args.beta8)
+
+    # Calculate how many gigabytes each .dconn file will be
+    if cli_args.beta8 == "1":
+        gb_per_dconn = 8
+    else:
+        gb_per_dconn = 33
+    gb_of_files_created = number_of_dconns_to_make * gb_per_dconn
+
+    # Warn user and ask for confirmation if file size exceeds threshold
+    if gb_of_files_created > WARNING_IF_DCONN_SIZE_EXCEEDS:
+        check = None
+        while check != "y":
+            check = input("Warning: This will create about "
+                          + str(gb_of_files_created) + " GB of .dconn files. "
+                          "Press y to continue or n to quit: ")
+            if check == "n":
+                sys.exit(1)
 
 
 def get_conn_matrices_list(cli_args):
@@ -571,10 +641,10 @@ def get_matrix_or_template_parameters(cli_args):
     """
     cifti_conn_matrix and cifti_conn_template both have the same required
     parameters, with only a few exceptions. This function returns a list of
-    every parameter required by both scripts.
+    all parameters required by both scripts.
     :param cli_args: Full argparse namespace containing all CLI args, including
     all necessary parameters for cifti_conn_matrix and cifti_conn_template.
-    :return: A list of parameters required by matrix and template scripts.
+    :return: A list of all parameters required by matrix and template scripts.
     """
     return([
         cli_args.wb_command,
@@ -588,6 +658,10 @@ def get_matrix_or_template_parameters(cli_args):
         cli_args.left,
         cli_args.right,
         cli_args.beta8,
+        cli_args.remove_outliers,
+        cli_args.additional_mask,
+        cli_args.make_conn_conc,
+        cli_args.output
     ])
 
 
@@ -614,10 +688,6 @@ def cifti_conn_matrix(cli_args):
     """
     # Get all parameters to pass to matrix script, including its options
     parameters = get_matrix_or_template_parameters(cli_args)
-    parameters.append(cli_args.remove_outliers)
-    parameters.append(cli_args.additional_mask)
-    parameters.append(cli_args.make_conn_conc)
-    parameters.append(cli_args.output)
 
     # Call matrix script
     subprocess.check_call([DEFAULT_SOURCE + SCRIPT_MATRIX, cli_args.mre_dir]
@@ -641,7 +711,6 @@ def cifti_conn_template(cli_args):
     parameters = get_matrix_or_template_parameters(cli_args)
     parameters.append(cli_args.keep_conn_matrices)
     parameters.append(cli_args.template)
-    parameters.append(cli_args.output)
 
     # Call cifti_conn_template script
     subprocess.check_call([DEFAULT_SOURCE + SCRIPT_TEMPLATE, cli_args.mre_dir]

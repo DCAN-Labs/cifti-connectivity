@@ -6,12 +6,12 @@ This folder contains all of the scripts used by the `cifti_conn_wrapper.py` wrap
 All of these files were created by the MATLAB compiler and must be in this folder for `cifti_conn_wrapper.py` to run.
 
 ### Compiled MATLAB Scripts
-1. `cifti_conn_matrix_exaversion`
+1. `cifti_conn_matrix_for_wrapper`
 1. `cifti_conn_pairwise_corr_exaversion`
 1. `cifti_conn_template_for_wrapper`
 
 ### BASH Scripts to Run Compiled MATLAB Scripts
-1. `run_cifti_conn_matrix_exaversion.sh`
+1. `run_cifti_conn_matrix_for_wrapper.sh`
 1. `run_cifti_conn_pairwise_corr_exaversion.sh`
 1. `run_cifti_conn_template_for_wrapper.sh`
 
@@ -19,7 +19,7 @@ All of these files were created by the MATLAB compiler and must be in this folde
 Although these files are not necessary for `cifti_conn_wrapper.py` to run, they are included in case changes need to be made to the MATLAB scripts, which would then need to be re-compiled.
 
 ### Uncompiled MATLAB Scripts
-1. `cifti_conn_matrix_exaversion.m`
+1. `cifti_conn_matrix_for_wrapper.m`
 1. `cifti_conn_pairwise_corr_exaversion.m`
 1. `cifti_conn_template_for_wrapper.m`
 

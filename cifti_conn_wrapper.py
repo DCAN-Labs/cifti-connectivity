@@ -239,7 +239,7 @@ def get_cli_args():
         "--output",
         default=DEFAULT_OUTPUT,
         help=("Location to save all output files to. By default, this will be "
-              "the directory specified in --input.")
+              + DEFAULT_OUTPUT)
     )
 
     # Optional: Give path to MATLAB Runtime Environment (MRE) directory

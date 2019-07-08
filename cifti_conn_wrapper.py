@@ -18,6 +18,7 @@ Last Updated 2019-07-08
 #    list of subjects.
 # 3. Run `cifti_conn_pairwise_corr` to generate a correlation of correlation
 #    matrices.
+# The functions which call these scripts are at the end of this file.
 #
 ##################################
 
@@ -57,8 +58,8 @@ SCRIPT_MATRIX = "run_cifti_conn_matrix_for_wrapper.sh"
 SCRIPT_PAIRWISE_CORR = "run_cifti_conn_pairwise_corr_exaversion.sh"
 SCRIPT_TEMPLATE = "run_cifti_conn_template_for_wrapper.sh"
 
-# If .dconn files' size exceeds this many gigabytes, then warn the user
-WARNING_IF_DCONN_SIZE_EXCEEDS = 300
+# If .dconn files' total size exceeds this many gigabytes, then warn the user
+WARNING_IF_DCONN_SIZE_EXCEEDS = 100
 
 # Workbench commands which depend on the host server
 WB_EXACLOUD = ("/home/exacloud/lustre1/fnl_lab/code/external/utilities/"
@@ -356,9 +357,8 @@ def validate_cli_args(cli_args, parser):
                 parser.error("Time series file must contain only a list of "
                              ".ptseries.nii or .dtseries.nii file paths.")
     except OSError:
-        print("Error: Could not read time series file paths from "
-              + cli_args.series_file)
-        sys.exit(1)
+        parser.error("Could not read time series file paths from "
+                     + cli_args.series_file)
 
     # Add whether time series is dense or parcellated to CLI args namespace
     cli_args.__setattr__("time_series", time_series)
@@ -460,7 +460,6 @@ def warn_user_about_dconn_size(series_file, cli_args):
     :param series_file: Currently-open file containing the names of all .dconn
     files to create.
     :param cli_args: argparse namespace with all command-line arguments
-    :param beta8: Argument specifying whether to use file size compression
     :return: N/A
     """
     # Figure out how many .dconn files will be made (1 per line in series file,
@@ -470,8 +469,6 @@ def warn_user_about_dconn_size(series_file, cli_args):
             will_delete_conn_matrices_later(cli_args)):
         while series_file.readline():
             number_of_dconns_to_make += 1
-
-    print(cli_args.beta8)
 
     # Calculate how many gigabytes each .dconn file will be
     if cli_args.beta8 == "1":
@@ -603,7 +600,7 @@ def get_wb_command():
                     command_found = True
                 else:
                     print("Error: Workbench command not found at "
-                          + wb_command + ".", end=" ")
+                          + wb_command, end=". ")
 
     return wb_command
 

@@ -1,6 +1,6 @@
 # `src` folder
 
-This folder contains all of the scripts used by the `cifti_conn_wrapper.py` wrapper. There should be 15 files in this folder, including this `README`. The other 14 are listed below:
+This folder contains all of the scripts used by the `cifti_conn_wrapper.py` wrapper. There should be at least 15 files in this folder, including this `README`. The other 14 are listed below:
 
 ## Files to run compiled scripts
 All of these files were created by the MATLAB compiler and must be in this folder for `cifti_conn_wrapper.py` to run.

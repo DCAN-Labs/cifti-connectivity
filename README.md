@@ -57,7 +57,7 @@ These arguments can be included without a value.
 
 `--remove_outliers` will remove outliers from the BOLD signal if this flag is included. Otherwise (by default), frames will only be censored by the FD threshold.
 
-`--suppress_warnings` will prevent the wrapper from asking user for confirmation if the `.dconn` files created by the wrapper will exceed a certain threshold. By default, the threshold beyond which the wrapper will warn the user is about 300 GB. This argument does nothing for `ptseries`.
+`--suppress_warnings` will prevent the wrapper from asking user for confirmation if the `.dconn` files created by the wrapper will exceed a certain threshold. By default, the wrapper will warn the user if it will create files totaling over 100 GB. This argument does nothing for `ptseries`.
 
 ### Optional Arguments: Numerical Values
 

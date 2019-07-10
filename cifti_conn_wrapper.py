@@ -4,7 +4,7 @@
 CIFTI conn wrapper
 Greg Conan: conan@ohsu.edu
 Created 2019-06-18
-Last Updated 2019-07-08
+Last Updated 2019-07-10
 """
 
 ##################################
@@ -382,10 +382,10 @@ def validate_and_get_input_dir(cli_args, parser):
     """
     input_dir = cli_args.input
 
-    # If a input directory path is invalid, infer one from time series file
+    # If an input directory path is invalid, infer one from time series file
     if not os.access(input_dir, os.R_OK):
         try:
-            input_path = Path(cli_args.series_file).resolve().input
+            input_path = Path(cli_args.series_file).resolve().parent
             assert input_path.is_dir()
             input_dir = str(input_path)
         except (OSError, AssertionError):
@@ -527,7 +527,7 @@ def add_wb_command_mre_dir_and_template_to(cli_args, parser):
     # If the user gave a wb_command, validate it; otherwise try to get a
     # default one, and ask user for one if on an unknown server
     if cli_args.wb_command:
-        cli_args = validate_readable_file(cli_args, "wb_command", parser)
+        cli_args = validate_readable_file("wb_command", cli_args, parser)
     else:
         cli_args.wb_command = get_wb_command()
 
@@ -683,12 +683,8 @@ def cifti_conn_matrix(cli_args):
     :param cli_args: argparse namespace with all command-line arguments
     :return: N/A
     """
-    # Get all parameters to pass to matrix script, including its options
-    parameters = get_matrix_or_template_parameters(cli_args)
-
-    # Call matrix script
     subprocess.check_call([DEFAULT_SOURCE + SCRIPT_MATRIX, cli_args.mre_dir]
-                          + parameters)
+                          + get_matrix_or_template_parameters(cli_args))
 
 
 def cifti_conn_template(cli_args):

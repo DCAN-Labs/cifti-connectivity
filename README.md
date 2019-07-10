@@ -9,6 +9,7 @@ Clone this repository and save it somewhere on the Linux system that you want to
 ## Dependencies
 - [Python v3.5.2](https://www.python.org/downloads/release/python-352) or greater
 - [MathWorks MATLAB Runtime Environment (MRE) version 9.1 (2016b)](https://www.mathworks.com/products/compiler/matlab-runtime.html) or greater
+- [Washington University Workbench Command (wb_command)](https://github.com/Washington-University/workbench)
   
 ## Purpose
 - Run `cifti_conn_matrix` on your dtseries or ptseries to generate a correlation matrix (in Fischer Z by default) or all the greyordinates/parcellations to all other greyordinate/parcellations.
@@ -39,7 +40,7 @@ For more usage information, call this script with the `--help` command: `python3
 
 ### Server-Dependent Arguments
  
-If these arguments are excluded, then by default the wrapper will use hardcoded paths which are only valid on the RUSHMORE or Exacloud servers. If this script is run on a different server or locally, then these arguments are required.
+If these arguments are excluded, then by default the wrapper will use hardcoded paths which are only valid on the RUSHMORE or Exacloud servers. If this script is run on a different server or locally, then these arguments are required. However, if there is already a `wb_command` file in the user's BASH PATH variable, then the script will use that.
 
 `--mre_dir` takes one argument, a valid path to the MRE compiler runtime directory. Example: `--mre_dir /usr/home/code/Matlab2016bRuntime/v91`
 
@@ -51,7 +52,7 @@ These arguments can be included without a value.
 
 `--keep_conn_matrices` will make the wrapper keep the `dconn/pconn` files after creating them. Otherwise, it will delete the `d/pconns` after adding them to the average `d/pconn`. The `d/pconn` files are needed to run `cifti_conn_pairwise_corr`, which compares the `d/pconn` files to the average file created by `cifti_conn_template`. So if this flag is excluded and `cifti_conn_pairwise_corr` is run, then the `d/pconn` files will be kept until the `pairwise_corr` script finishes.
 
-`--beta8` will run a beta version to reduce file size. Include this argument to reduce floating point precision and discard lower triangle of matrix. Exclude it to leave the same.  If included, this will produce 8Gb `.dconns`. Otherwise, this will make 32Gb `.dconns`. This option does nothing for `ptseries`.
+`--beta8` will run a beta version to reduce file size. Include this argument to reduce floating point precision and discard lower triangle of matrix. Exclude it to leave the same.  If included, this will produce 8Gb `.dconns`. Otherwise, this will make 33Gb `.dconns`. This option does nothing for `ptseries`.
 
 `--make_conn_conc` will make a list of connectivity matrices created by this wrapper. By default, the wrapper will not make a list.
 

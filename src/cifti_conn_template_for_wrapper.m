@@ -190,7 +190,7 @@ if strcmp(minutes_limit,'none')==1 || strcmp(minutes_limit,'None')==1 || strcmp(
             dconn_paths_none_minutes_at_thresh_min_lim = [char(strcat(output_directory, matrix_filename, matrix_ext, '_all_frames_at_FD_', {motion_file}, '.', {suffix2}))];
             if exist(dconn_paths_none_minutes_at_thresh_min_lim) == 0
                 disp('conn.nii does not exist for this subject yet.  Running code to create matrix.')
-                cifti_conn_matrix_for_wrapper(wb_command, A{1},series,motion_file, FD_threshold, TR, minutes_limit, smoothing_kernal,left_surface_file,right_surface_file,bit8, remove_outliers, additional_mask, make_conn_conc, output_directory)
+                cifti_conn_matrix_for_wrapper(wb_command, A{1},series,motion_file, FD_threshold, TR, minutes_limit, smoothing_kernal,left_surface_file,right_surface_file,bit8, remove_outliers, additional_mask, , output_directory)
                 
                 % rename out put to average
                 %dconn_paths_all_frames = [char(strcat({A{1}}, '_all_frames_at_FD_', {motion_file}, '.', {suffix2}))];

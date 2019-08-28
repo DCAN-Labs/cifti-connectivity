@@ -4,7 +4,7 @@
 CIFTI conn wrapper
 Greg Conan: conan@ohsu.edu
 Created 2019-06-18
-Last Updated 2019-07-10
+Last Updated 2019-08-23
 """
 
 ##################################
@@ -24,7 +24,6 @@ Last Updated 2019-07-10
 
 import argparse
 import os
-from pathlib import Path
 from socket import gethostname
 import subprocess
 import sys
@@ -81,6 +80,11 @@ def main():
         # Call script
         globals()[script](cli_args)
 
+        # If script made a connectivity matrix list as a .conc file, find it
+        if script != CHOICES_TO_RUN[2] and will_make_conn_conc(cli_args):
+            cli_args = validate_readable_file("conn_matrices", cli_args,
+                                              argparse.ArgumentParser())
+
         # Tell user when script finished
         print("\nCIFTI conn wrapper finished running " + script + " at:")
         subprocess.call("date")
@@ -122,20 +126,23 @@ def get_cli_args():
     parser.add_argument(
         "-i",
         "--input",
-        default=DEFAULT_INPUT,
         help=("Directory containing all HCP conn data files. By default, this "
-              "will be " + DEFAULT_INPUT + " But if that does not exist or "
-              "is empty, the default will instead be the directory containing "
-              "the time series file.")
+              "will be the directory containing the time series file.")
     )
 
     # Optional: Get name of .conc file listing FNL motion mat files
     parser.add_argument(
         "-m",
         "--motion",
-        default=GROUP_MOTION_CONC,
+        nargs="?",
+        const=GROUP_MOTION_CONC,
+        default="none",
         help=("Name of .conc file that points to FNL motion mat files for each"
-              "dt or ptseries. Default name is " + GROUP_MOTION_CONC)
+              "dt or ptseries. By default motion correction will not be done. "
+              "If this flag is included without a filename, then motion "
+              "correction will be done using the default motion file(s) at "
+              + GROUP_MOTION_CONC + ". To use your own motion file, type it "
+              "after this flag as an argument.")
     )
 
     # Optional: Get name of template file to create
@@ -255,7 +262,7 @@ def get_cli_args():
     parser.add_argument(
         "-w",
         "--wb_command",
-        help="Path to workbench command file."
+        help="Path to workbench command file called 'wb_command'."
     )
 
     # Optional: Get name of additional mask to put on top of FD threshold
@@ -336,14 +343,18 @@ def validate_cli_args(cli_args, parser):
     if cli_args.series_file == "none":
         parser.error("series_file must be a valid file path and not 'none'.")
     else:
-        for file_arg in ["series_file", "motion", "left", "right"]:
+        for file_arg in ["series_file", "motion", "left", "right",
+                         "additional_mask"]:
             cli_args = validate_readable_file(file_arg, cli_args, parser)
 
     # Infer whether series_file is dense or parcellated by reading series_file
     # provided by user
     try:
         with open(cli_args.series_file, "r") as series_file:
-            time_series = series_file.readline().split(".")[-2]
+            if cli_args.series_file[-11:] == "tseries.nii":
+                time_series = cli_args.series_file[-12:-4]
+            else:
+                time_series = series_file.readline().split(".")[-2]
 
             # If size of .dconn files to make exceeds threshold, then warn user
             if time_series == "dtseries":
@@ -359,6 +370,10 @@ def validate_cli_args(cli_args, parser):
     except OSError:
         parser.error("Could not read time series file paths from "
                      + cli_args.series_file)
+    except IndexError:
+        parser.error("Series file must be a path to a .dtseries.nii file or "
+                     "to a .ptseries.nii file, or a path to a .conc file "
+                     "which only has a list of paths to those .nii files.")
 
     # Add whether time series is dense or parcellated to CLI args namespace
     cli_args.__setattr__("time_series", time_series)
@@ -367,10 +382,26 @@ def validate_cli_args(cli_args, parser):
     # is being run
     if CHOICES_TO_RUN[2] in cli_args.scripts_to_run:
         cli_args.__setattr__("conn_matrices", get_conn_matrices_list(cli_args))
-        cli_args = validate_readable_file("conn_matrices", cli_args, parser)
+
+        # If cifti_conn_matrix will make conn_matrices .conc file, set a flag
+        # to find it; otherwise ensure that conn_matrices .conc exists already
+        if not will_make_conn_conc(cli_args):
+            cli_args = validate_readable_file("conn_matrices",
+                                              cli_args, parser)
 
     # Return cli_args with workbench command, MRE dir, and template file added
     return add_wb_command_mre_dir_and_template_to(cli_args, parser)
+
+
+def will_make_conn_conc(cli_args):
+    """
+    Check whether this wrapper will actually make a conn_matries .conc file
+    :param cli_args: argparse namespace with all command-line arguments
+    :return: True if this wrapper will create a .conc file with a list of
+    connectivity matrices made by the wrapper, and False otherwise.
+    """
+    return ((CHOICES_TO_RUN[0] in cli_args.scripts_to_run or CHOICES_TO_RUN[1]
+             in cli_args.scripts_to_run) and cli_args.make_conn_conc == "1")
 
 
 def validate_and_get_input_dir(cli_args, parser):
@@ -383,13 +414,21 @@ def validate_and_get_input_dir(cli_args, parser):
     input_dir = cli_args.input
 
     # If an input directory path is invalid, infer one from time series file
-    if not os.access(input_dir, os.R_OK):
+    if input_dir is None or not os.access(input_dir, os.R_OK):
         try:
-            input_path = Path(cli_args.series_file).resolve().parent
-            assert input_path.is_dir()
-            input_dir = str(input_path)
+            input_path = os.path.dirname(cli_args.series_file)
+            assert os.path.isdir(input_path)
+            input_dir = os.path.abspath(input_path)
+
+        # If the input directory cannot be inferred from the series file, then
+        # raise a parser error
         except (OSError, AssertionError):
-            parser.error(input_dir + " is not an existing directory.")
+            err_msg = ["--input argument", str(input_dir),
+                       "is not a readable directory."]
+            if not os.access(cli_args.series_file, os.R_OK):
+                err_msg += ["This is because the time series file",
+                            cli_args.series_file, "cannot be read."]
+            parser.error(" ".join(err_msg))
 
     # Ensure that input folder path is formatted correctly with trailing slash
     if input_dir[-1] != "/":
@@ -407,7 +446,9 @@ def validate_and_get_output_dir(output, parser):
     :return: Valid path to output directory
     """
     try:
-        Path(output).mkdir(exist_ok=True, parents=True)
+        output = os.path.abspath(output)
+        if not os.path.isdir(output):
+            os.makedirs(output)
         assert os.access(output, os.W_OK)
     except (OSError, TypeError):
         parser.error("Cannot make output folder at " + output)
@@ -438,7 +479,7 @@ def validate_readable_file(file_arg_name, cli_args, parser):
     # Unless file_arg is "none" or a readable file, try to find file_arg
     # in the cli_args.input directory, and update cli_args object accordingly
     if file_arg != "none" and not os.access(file_arg, os.R_OK):
-        new_file_arg = cli_args.input + Path(file_arg).name
+        new_file_arg = cli_args.input + os.path.basename(file_arg)
         if os.access(new_file_arg, os.R_OK):
             setattr(cli_args, file_arg_name, new_file_arg)
 
@@ -481,9 +522,10 @@ def warn_user_about_dconn_size(series_file, cli_args):
     if gb_of_files_created > WARNING_IF_DCONN_SIZE_EXCEEDS:
         check = None
         while check != "y":
-            check = input("Warning: This will create about "
-                          + str(gb_of_files_created) + " GB of .dconn files. "
-                          "Press y to continue or n to quit: ")
+            check = input(" ".join((
+                "Warning: This will create about", str(gb_of_files_created),
+                "GB of .dconn files. Enter y to continue or n to quit: "
+            )))
             if check == "n":
                 sys.exit(1)
 
@@ -496,7 +538,7 @@ def get_conn_matrices_list(cli_args):
     :return: Path to .conc file with list of connectivity matrices
     """
     # Get series_file name without its path
-    series = Path(cli_args.series_file).name
+    series = os.path.basename(cli_args.series_file)
 
     # Re-format p/d series to create filename of conn_matrices list
     if cli_args.time_series == "ptseries":
@@ -506,12 +548,12 @@ def get_conn_matrices_list(cli_args):
 
     # Get parts of conn_matrices_list filename about minutes and FD threshold
     if cli_args.minutes != "none":
-        minutes_and_fd = (cli_args.minutes + "_minutes_of_data_at_FD_"
-                          + cli_args.fd_threshold + ".conc")
+        minutes_and_fd = "".join((cli_args.minutes, "_minutes_of_data_at_FD_",
+                                  cli_args.fd_threshold, ".conc"))
     else:
         minutes_and_fd = "_all_frames_at_FD_" + cli_args.fd_threshold
 
-    return cli_args.output + series + p_or_d + minutes_and_fd + ".conc"
+    return "".join((cli_args.output, series, p_or_d, minutes_and_fd, ".conc"))
 
 
 def add_wb_command_mre_dir_and_template_to(cli_args, parser):
@@ -523,7 +565,6 @@ def add_wb_command_mre_dir_and_template_to(cli_args, parser):
     :return: cli_args, but with validated wb_command, mre_dir, and template
     attributes
     """
-
     # If the user gave a wb_command, validate it; otherwise try to get a
     # default one, and ask user for one if on an unknown server
     if cli_args.wb_command:
@@ -556,7 +597,7 @@ def add_wb_command_mre_dir_and_template_to(cli_args, parser):
             break
         elif script == CHOICES_TO_RUN[2]:
             cli_args = validate_readable_file("template", cli_args, parser)
-            cli_args.template = str(Path(cli_args.template).resolve())
+            cli_args.template = os.path.abspath(cli_args.template)
             break
 
     return cli_args
@@ -569,9 +610,9 @@ def get_wb_command():
     """
     # If wb_command is already in BASH PATH, then get it and format it properly
     try:
-        wb_command = subprocess.check_output([
+        wb_command = str(subprocess.check_output([
             "which", "wb_command"
-        ]).decode("utf-8").strip()
+        ]).decode("utf-8").strip())
 
     # Otherwise, use hardcoded wb_command depending on host server, or get
     # wb_command from user if host server is not known
@@ -599,8 +640,8 @@ def get_wb_command():
                 elif os.access(wb_command, os.R_OK):
                     command_found = True
                 else:
-                    print("Error: Workbench command not found at "
-                          + wb_command, end=". ")
+                    print("Error: Workbench command not found at " +
+                          wb_command + ".")
 
     return wb_command
 
@@ -612,7 +653,7 @@ def get_template_file_path(cli_args):
     :return: String name of file created by cifti_conn_template
     """
     # Get name of series file without its directory path
-    series_file_name = str(Path(cli_args.series_file).name)
+    series_file_name = os.path.basename(cli_args.series_file)
 
     # Build filename depending on minutes_limit and motion_file
     if cli_args.minutes == "none":
@@ -624,14 +665,16 @@ def get_template_file_path(cli_args):
     elif cli_args.minutes == "none":
         motion_and_smooth = cli_args.fd_threshold + '_and_smoothing_'
     else:
-        motion_and_smooth = (cli_args.fd_threshold + '_at_' + cli_args.minutes
-                             + '_minutes_remaining_smoothing_')
+        motion_and_smooth = "_".join((
+            cli_args.fd_threshold, 'at', cli_args.minutes,
+            'minutes_remaining_smoothing_'
+        ))
 
     # Return the full file path and name of template file, assuming that
     # template file is in cli_args.output directory
-    return (cli_args.output + series_file_name + fd + motion_and_smooth
-            + cli_args.smoothing_kernel + '_AVG.' + cli_args.time_series[0]
-            + "conn.nii")
+    return "".join((cli_args.output, series_file_name, fd, motion_and_smooth,
+                    cli_args.smoothing_kernel, '_AVG.',
+                    cli_args.time_series[0], "conn.nii"))
 
 
 def get_matrix_or_template_parameters(cli_args):
@@ -731,7 +774,7 @@ def cifti_conn_pairwise_corr(cli_args):
 
     # Call cifti_conn_pairwise_corr script
     subprocess.check_call([DEFAULT_SOURCE + SCRIPT_PAIRWISE_CORR,
-                           cli_args.mre_dir] + parameters)
+                               cli_args.mre_dir] + parameters)
 
     # If user said not to keep conn matrices but pairwise_corr used them,
     # then try to delete the conn matrices after pairwise_corr finishes
@@ -740,7 +783,7 @@ def cifti_conn_pairwise_corr(cli_args):
             with open(cli_args.conn_matrices) as infile:
                 for line in infile:
                     print("Deleting " + line)
-                    Path(line.strip()).unlink()
+                    os.unlink(line)
         except FileNotFoundError as e:
             print("Could not find file at " + e.filename)
 

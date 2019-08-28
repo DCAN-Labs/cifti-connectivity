@@ -269,7 +269,7 @@ else %use motion cenosoring
     %Make sure length of motion files matches length of timeseries
     if length(A)==length(B)
     else
-        disp('length of motion conc file does not match legnth of series con file')
+        disp('length of motion conc file does not match length of series con file')
     end
     
     % Check that all motion files in conc file exist

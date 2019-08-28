@@ -18,7 +18,7 @@ Clone this repository and save it somewhere on the Linux system that you want to
 
 ## Usage
 
-Any of the three matrix, template, or pairwise_corr functions can be completed by running `cifti_conn_wrapper.py` from within the directory cloned from this repo. `cifti_conn_wrapper.py` requires two positional arguments and can take many optional arguments. 
+Any of the three matrix, template, or pairwise_corr functions can be completed by running `cifti_conn_wrapper.py` from within the directory cloned from this repo. `cifti_conn_wrapper.py` requires three positional arguments and can take many optional arguments. 
 
 ### Required Positional Arguments
  
@@ -50,11 +50,11 @@ If these arguments are excluded, then by default the wrapper will use hardcoded 
 
 These arguments can be included without a value.
 
+`--make_conn_conc` will make a list of connectivity matrices created by this wrapper. By default, the wrapper will not make a list. Running `cifti_conn_pairwise_corr` will only work if a list of connectivity matrices already exists. This wrapper can create a list by running `cifti_conn_matrix` or `cifti_conn_template` with this `--make_conn_conc` flag included.
+
 `--keep_conn_matrices` will make the wrapper keep the `dconn/pconn` files after creating them. Otherwise, it will delete the `d/pconns` after adding them to the average `d/pconn`. The `d/pconn` files are needed to run `cifti_conn_pairwise_corr`, which compares the `d/pconn` files to the average file created by `cifti_conn_template`. So if this flag is excluded and `cifti_conn_pairwise_corr` is run, then the `d/pconn` files will be kept until the `pairwise_corr` script finishes.
 
 `--beta8` will run a beta version to reduce file size. Include this argument to reduce floating point precision and discard lower triangle of matrix. Exclude it to leave the same.  If included, this will produce 8Gb `.dconns`. Otherwise, this will make 33Gb `.dconns`. This option does nothing for `ptseries`.
-
-`--make_conn_conc` will make a list of connectivity matrices created by this wrapper. By default, the wrapper will not make a list.
 
 `--remove_outliers` will remove outliers from the BOLD signal if this flag is included. Otherwise (by default), frames will only be censored by the FD threshold.
 
@@ -72,7 +72,7 @@ These arguments can be included without a value.
 
 Each of the arguments below accepts one value, a valid file or directory path. Each argument has a default value, but the user can optionally specify a different path.
  
-`--input` takes a path to the directory containing the input data. The default value of this argument is `./raw/`.
+`--input` takes a path to the directory containing all input `.conc` files. By default, this will be the directory containing `series_file`.
  
 `--output` takes a path to the directory which will be filled with output data. The default value of this argument is `./data/`.
  
@@ -136,6 +136,9 @@ The `p_or_dconn` argument passed to `cifti_conn_pairwise_corr` is simply the `ti
 
 ### 7/3/2019
 - Wrote Python CLI wrapper to run all three scripts, wrote documentation for the wrapper, and reorganized directory structure
+
+### 8/23/2019
+- Fixed a bug where the wrapper would not run unless connectivity matrix list `.conc` file already exited, even though the wrapper includes the functionality to make that list.
 
 ## Feature Requests
  - https://trello.com/b/hQkyYits/robo-science

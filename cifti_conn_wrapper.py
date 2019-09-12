@@ -358,10 +358,10 @@ def validate_cli_args(cli_args, parser):
 
             # If size of .dconn files to make exceeds threshold, then warn user
             if time_series == "dtseries":
-                if (not cli_args.suppress_warnings and
+                if ((not cli_args.suppress_warnings) and
                         (CHOICES_TO_RUN[0] in cli_args.scripts_to_run or
                          CHOICES_TO_RUN[1] in cli_args.scripts_to_run)):
-                    warn_user_about_dconn_size(series_file, cli_args)
+                    warn_user_about_dconn_size(cli_args)
 
             # If invalid time series is given, then tell user and crash
             elif time_series != "ptseries":
@@ -494,22 +494,23 @@ def validate_readable_file(file_arg_name, cli_args, parser):
     return cli_args
 
 
-def warn_user_about_dconn_size(series_file, cli_args):
+def warn_user_about_dconn_size(cli_args):
     """
     If the size of all of the .dconn files exceeds a certain threshold, then
     tell the user and make the user approve of .dconn creation to continue
-    :param series_file: Currently-open file containing the names of all .dconn
-    files to create.
     :param cli_args: argparse namespace with all command-line arguments
     :return: N/A
     """
-    # Figure out how many .dconn files will be made (1 per line in series file,
-    # but only 1 if .dconn files are deleted after being added to rolling avg)
-    number_of_dconns_to_make = 1
-    if (cli_args.keep_conn_matrices == "1" or
-            will_delete_conn_matrices_later(cli_args)):
-        while series_file.readline():
-            number_of_dconns_to_make += 1
+    # Open series file again to count its lines
+    with open(cli_args.series_file, "r") as series_file:
+
+        # Figure out how many .dconn files will be made (1 per line in series file,
+        # but only 1 if .dconn files are deleted after being added to rolling avg)
+        number_of_dconns_to_make = 1
+        if (cli_args.keep_conn_matrices == "1" or not
+                will_delete_conn_matrices_later(cli_args)):
+            while series_file.readline():
+                number_of_dconns_to_make += 1
 
     # Calculate how many gigabytes each .dconn file will be
     if cli_args.beta8 == "1":

@@ -29,7 +29,7 @@ function cifti_conn_matrix_for_wrapper(wb_command, dt_or_ptseries_conc_file,seri
 % smoothing_kernal= '1.7'; %'none'
 % left_surface_file='/mnt/max/shared/data/study/ABCD/ABCD_SIEMENS_SEFMNoT2/cub-sub-NDARINVLWRKNUN1/ses-baselineYear1Arm1/HCP_release_20161027_v1.1/cub-sub-NDARINVLWRKNUN1/MNINonLinear/fsaverage_LR32k/cub-sub-NDARINVLWRKNUN1.L.midthickness.32k_fs_LR.surf.gii';
 % right_surface_file='/mnt/max/shared/data/study/ABCD/ABCD_SIEMENS_SEFMNoT2/cub-sub-NDARINVLWRKNUN1/ses-baselineYear1Arm1/HCP_release_20161027_v1.1/cub-sub-NDARINVLWRKNUN1/MNINonLinear/fsaverage_LR32k/cub-sub-NDARINVLWRKNUN1.R.midthickness.32k_fs_LR.surf.gii';
-% bit8 = set to 1 if you want to make the outputs smaller in 8bit 
+% bit8 = set to 1 if you want to make the outputs smaller in 8bit
 
 orig_conc_folders = split(dt_or_ptseries_conc_file,'/');
 orig_conc_file = char(orig_conc_folders(end));
@@ -62,7 +62,7 @@ end
 %Check to make sure that  minutes limit is a number (unless you've set it
 %to 'none')
 if strcmp(minutes_limit,'none')==1 || strcmp(minutes_limit,'None')==1 || strcmp(minutes_limit,'NONE')==1
-minutes_limit= 'none';
+    minutes_limit= 'none';
 elseif isnumeric(minutes_limit)==1
     disp('minutes limit is passed in as numeric.')
 else
@@ -98,8 +98,8 @@ end
 
 
 if (strcmp(smoothing_kernal,'none')~=1) && (strcmp(series,'ptseries')==1)
-disp('Check your settings. Smoothing not allowed on ptseries.');
-return
+    disp('Check your settings. Smoothing not allowed on ptseries.');
+    return
 else
 end
 
@@ -161,7 +161,7 @@ elseif strcmp(series, 'dtseries')
             output_precision = ' ';
         end
     else
-            output_precision = ' ';
+        output_precision = ' ';
     end
 else
     'series needs to be "ptseries" or "dtseries"';
@@ -183,22 +183,22 @@ else
         D = {right_surface_file};
     end
     
-        for i = 1:length(C)
-            if exist(C{i}) == 0
-                NOTE = ['Subject left surface ' num2str(i) ' does not exist']
-                return
-            else
-            end
+    for i = 1:length(C)
+        if exist(C{i}) == 0
+            NOTE = ['Subject left surface ' num2str(i) ' does not exist']
+            return
+        else
         end
-        disp('All left surface files for smoothing exist continuing ...')
-        for i = 1:length(D)
-            if exist(D{i}) == 0
-                NOTE = ['Subject right surface ' num2str(i) ' does not exist']
-                return
-            else
-            end 
-        end        
-        disp('All right surface files for smoothing exist continuing ...')
+    end
+    disp('All left surface files for smoothing exist continuing ...')
+    for i = 1:length(D)
+        if exist(D{i}) == 0
+            NOTE = ['Subject right surface ' num2str(i) ' does not exist']
+            return
+        else
+        end
+    end
+    disp('All right surface files for smoothing exist continuing ...')
 end
 
 %% Generate Motion Vectors and correlation matrix
@@ -206,18 +206,18 @@ end
 if strcmp(motion_file,'none')==1 || strcmp(motion_file,'None')==1 % run this if no motion censoring
     'No motion files, will use all frames to generate matrices'
     for i = 1:length(A)
-            folders = split(A{i},'/');
-            orig_cifti_filename = char(folders(end));
-            folder_input = join(folders(1:end-1),'/');
-            input_directory = [char(folder_input) '/'];            
+        folders = split(A{i},'/');
+        orig_cifti_filename = char(folders(end));
+        folder_input = join(folders(1:end-1),'/');
+        input_directory = [char(folder_input) '/'];
         if no_output
             output_directory =char(input_directory);
         end
         if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
             temp_name = [char(output_directory) char(orig_cifti_filename) '_all_frames_at_FD_' motion_file '.' suffix2];
         else
-             A_smoothed{i} = [char(output_directory) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernal) '.' suffix];
-             temp_name = [A_smoothed{i} '_all_frames_at_FD_' motion_file '.' suffix2];
+            A_smoothed{i} = [char(output_directory) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernal) '.' suffix];
+            temp_name = [A_smoothed{i} '_all_frames_at_FD_' motion_file '.' suffix2];
             if exist(A_smoothed{i}) == 0 %check to see if smoothing file does not exist
                 clear smoothedfile_name
                 Column = 'COLUMN';
@@ -286,60 +286,91 @@ else %use motion cenosoring
     
     %% Generate motion vector for subject and generate correlation matrix
     for i = 1:length(B)
-        load(B{i})
-        folders = split(A{i},'/');
-        orig_cifti_filename = char(folders(end));
-        folder_input = join(folders(1:end-1),'/');
-        input_directory = [char(folder_input) '/'];            
-        if no_output
-            output_directory = char(input_directory);
-        end
-        foldersB = split(B{i},'/');
-        orig_motion_filename = char(foldersB(end));
-        folderB_input = join(foldersB(1:end-1),'/');
-        inputB_directory = [char(folderB_input) '/'];
-        if no_output
-            output_directory = char(inputB_directory);
-        end
-        allFD = zeros(1,length(motion_data));
-        for j = 1:length(motion_data)
-            allFD(j) = motion_data{j}.FD_threshold;
-        end
-        FDidx = find(round(allFD,3) == round(FD_threshold,3));
-        FDvec = motion_data{FDidx}.frame_removal;
-        FDvec = abs(FDvec-1);
-        
-        if strcmp(additional_mask,'none')==1 || strcmp(additional_mask,'None')==1 || strcmp(additional_mask,'NONE')==1
-            disp('No additional mask supplied. Using full time series. Frames will be excluded only by FD (unless removal of outliers is indicated).')
+            motion_exten = strsplit(B{i}, '.');
+            motion_exten = char(motion_exten(end));
+            
+            if strcmp('mat',motion_exten) == 1
+            other_motion_mask =0; 
+            else
+             other_motion_mask =1;  
+            end
+        if other_motion_mask ==1 %use an external mask rather than calculating the mask here (e.g. .txt file.
+            FDvec=B{i};
+            if exist('remove_outliers','var') == 0 || remove_outliers == 1 %remove outliers from external mask
+                disp('Removal outliers not specified.  It will be performed by default.')
+                %% additional frame removal based on Outliers command: isoutlier with "median" method.
+                cmd = [wb_command ' -cifti-stats ' A{i} ' -reduce STDEV > ' stdev_temp_filename];
+                system(cmd);
+                clear cmd
+                disp('waiting 10 seconds for writing of temp file before reading. Line:258 (not an error)')
+                pause(10);  % to give time to write temp file, failed to load with pause(1)
+                STDEV_file=load(stdev_temp_filename); % load stdev of .nii file.
+                FDvec_keep_idx = find(FDvec==1); %find the kept frames from the FD mask
+                Outlier_file=isthisanoutlier(STDEV_file(FDvec_keep_idx),'median'); %find outlier
+                Outlier_idx=find(Outlier_file==1); %find outlier indices
+                FDvec(FDvec_keep_idx(Outlier_idx))=0; %set outliers to zero within FDvec
+                clear STDEV_file FDvec_keep_idx Outlier_file Outlier_idx
+                
+            else exist('remove_outliers','var') == 1 && remove_outliers == 0;
+                disp('Motion censoring performed on FD alone. Frames with outliers in BOLD std dev not removed');
+            end
         else
-            additionalvec = load(additional_mask); %Load .mat file with 0s and 1s.  where 0 are frames to be discarded and 1s are frames to be used to make your matrix.
-            FDvec_temp = FDvec & (additionalvec);
-            FDvec = FDvec_temp;
-        end
-        
-        if exist('remove_outliers','var') == 0 || remove_outliers == 1
-            disp('Removal outliers not specified.  It will be performed by default.')
+            %Use power 2014 motion
+            load(B{i})
+            folders = split(A{i},'/');
+            orig_cifti_filename = char(folders(end));
+            folder_input = join(folders(1:end-1),'/');
+            input_directory = [char(folder_input) '/'];
+            if no_output
+                output_directory = char(input_directory);
+            end
+            foldersB = split(B{i},'/');
+            orig_motion_filename = char(foldersB(end));
+            folderB_input = join(foldersB(1:end-1),'/');
+            inputB_directory = [char(folderB_input) '/'];
+            if no_output
+                output_directory = char(inputB_directory);
+            end
+            allFD = zeros(1,length(motion_data));
+            for j = 1:length(motion_data)
+                allFD(j) = motion_data{j}.FD_threshold;
+            end
+            FDidx = find(round(allFD,3) == round(FD_threshold,3));
+            FDvec = motion_data{FDidx}.frame_removal;
+            FDvec = abs(FDvec-1);
             
-            %% additional frame removal based on Outliers command: isoutlier with "median" method.
-            cmd = [wb_command ' -cifti-stats ' char(input_directory) char(orig_cifti_filename) ' -reduce STDEV > ' stdev_temp_filename]
-            system(cmd);
-            clear cmd
-            disp('waiting 60 seconds for writing of temp file before reading. Line:258 (not an error)')
-            pause(30);  % to give time to write temp file, failed to load with pause(1)
-            STDEV_file=load(stdev_temp_filename); % load stdev of .nii file.
-            FDvec_keep_idx = find(FDvec==1); %find the kept frames from the FD mask
-            Outlier_file=isthisanoutlier(STDEV_file(FDvec_keep_idx),'median'); %find outlier
-            Outlier_idx=find(Outlier_file==1); %find outlier indices
-            FDvec(FDvec_keep_idx(Outlier_idx))=0; %set outliers to zero within FDvec
-            clear STDEV_file FDvec_keep_idx Outlier_file Outlier_idx
+            if strcmp(additional_mask,'none')==1 || strcmp(additional_mask,'None')==1 || strcmp(additional_mask,'NONE')==1
+                disp('No additional mask supplied. Using full time series. Frames will be excluded only by FD (unless removal of outliers is indicated).')
+            else
+                additionalvec = load(additional_mask); %Load .mat file with 0s and 1s.  where 0 are frames to be discarded and 1s are frames to be used to make your matrix.
+                FDvec_temp = FDvec & (additionalvec);
+                FDvec = FDvec_temp;
+            end
             
-        else exist('remove_outliers','var') == 1 && remove_outliers == 0;
-            disp('Motion censoring performed on FD alone. Frames with outliers in BOLD std dev not removed');
+            if exist('remove_outliers','var') == 0 || remove_outliers == 1
+                disp('Removal outliers not specified.  It will be performed by default.')
+                
+                %% additional frame removal based on Outliers command: isoutlier with "median" method.
+                cmd = [wb_command ' -cifti-stats ' char(input_directory) char(orig_cifti_filename) ' -reduce STDEV > ' stdev_temp_filename]
+                system(cmd);
+                clear cmd
+                disp('waiting 60 seconds for writing of temp file before reading. Line:258 (not an error)')
+                pause(30);  % to give time to write temp file, failed to load with pause(1)
+                STDEV_file=load(stdev_temp_filename); % load stdev of .nii file.
+                FDvec_keep_idx = find(FDvec==1); %find the kept frames from the FD mask
+                Outlier_file=isthisanoutlier(STDEV_file(FDvec_keep_idx),'median'); %find outlier
+                Outlier_idx=find(Outlier_file==1); %find outlier indices
+                FDvec(FDvec_keep_idx(Outlier_idx))=0; %set outliers to zero within FDvec
+                clear STDEV_file FDvec_keep_idx Outlier_file Outlier_idx
+                
+            else exist('remove_outliers','var') == 1 && remove_outliers == 0;
+                disp('Motion censoring performed on FD alone. Frames with outliers in BOLD std dev not removed');
+            end
         end
         
         %%
         if strcmp(minutes_limit,'none')==1 || strcmp(minutes_limit,'None')==1 || strcmp(minutes_limit,'NONE')==1
-
+            
             fileID = fopen([char(output_directory) char(orig_motion_filename) '_' num2str(FD_threshold) '_cifti_censor_FD_vector_All_Good_Frames.txt'],'w');
             fprintf(fileID,'%1.0f\n',FDvec);
             fclose(fileID);
@@ -387,9 +418,9 @@ else %use motion cenosoring
             end
             
         else %Start minutes limit calculation
-        good_frames_idx = find(FDvec == 1); 
-        good_minutes = (length(good_frames_idx)*TR)/60; % number of good minutes in your data
-        
+            good_frames_idx = find(FDvec == 1);
+            good_minutes = (length(good_frames_idx)*TR)/60; % number of good minutes in your data
+            
             if good_minutes < 0.5 % if there is less than 30 seconds, don't generate the correlation matrix
                 subject_has_too_few_frames = ['Subject ' num2str(i) ' has less than 30 seconds of good data']
                 
@@ -503,171 +534,102 @@ else %use motion cenosoring
 end
 
 if make_dconn_conc == 1
-disp('Done making (p or d)conn.nii for subjects.  Making output .concs')
-
-%% GENERATE FINAL CONC text file here to use in other code (e.g. cifti_conn_pairwise_corr.m)
-
-if strcmp('conc',conc) == 1
-    concname = [dt_or_ptseries_conc_file '_' suffix3 '_of_' series]; %prefix name
-else
-    concname = strsplit(dt_or_ptseries_conc_file, '/');
-    concname = char(concname(end));
-    concname = [concname '_' suffix3 '_of_' series]; %prefix name
-end
-
-%different conc files that potentially could be produced
-subjectswithoutenoughdata = [];
-dconn_paths_all_frames = [];
-dconn_paths_all_frames_at_thresh=[];
-dconn_paths_all_frames_at_thresh_min_lim =[];
-
-%% Generate conc files
-if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
-    for i = 1:length(A)
-            folders = split(A{i},'/');
-            orig_cifti_filename = char(folders(end));
-            folder_input = join(folders(1:end-1),'/');
-            input_directory = [char(folder_input) '/'];            
-        if no_output
-            output_directory =char(input_directory);
-        end       
-        if strcmp(motion_file,'none')==1 || strcmp(motion_file,'None')==1
-            dconn_paths_all_frames = [dconn_paths_all_frames; strcat(char(output_directory),char(orig_cifti_filename), '_all_frames_at_FD_', {FD_threshold}, '.', {suffix2})];
-        else
-            load(B{i})
-            allFD = zeros(1,length(motion_data));
-            for j = 1:length(motion_data)
-                allFD(j) = motion_data{j}.FD_threshold;
-            end
-            FDidx = find(allFD == FD_threshold);
-            FDvec = motion_data{FDidx}.frame_removal;
-            FDvec = abs(FDvec-1);
-            
-            %% additional frame removal based on Outliers command: isoutlier with "median" method.
-            cmd = [wb_command ' -cifti-stats ' char(input_directory) char(orig_cifti_filename) ' -reduce STDEV > ' stdev_temp_filename];
-            system(cmd);
-            disp('waiting 60 seconds for writing of temp file before reading. Line:460 (not an error)')
-            pause(30);
-            STDEV_file=load(stdev_temp_filename); % load stdev of .nii file.
-            FDvec_keep_idx = find(FDvec==1); %find the kept frames from the FD mask
-            Outlier_file=isthisanoutlier(STDEV_file(FDvec_keep_idx),'median'); %find outlier
-            Outlier_idx=find(Outlier_file==1); %find outlier indices
-            FDvec(FDvec_keep_idx(Outlier_idx))=0; %set outliers to zero within FDvec
-            clear STDEV_file FDvec_keep_idx Outlier_file Outlier_idx
-            
-            if strcmp(minutes_limit,'none')==1 || strcmp(minutes_limit,'None')==1 || strcmp(minutes_limit,'NONE')==1
-            dconn_paths_all_frames_at_thresh = [dconn_paths_all_frames_at_thresh; strcat(char(output_directory),char(orig_cifti_filename), '_all_frames_at_FD_', {num2str(FD_threshold)}, '.', {suffix2})];
-            else
-                good_frames_idx = find(FDvec == 1);
-                good_minutes = (length(good_frames_idx)*TR)/60;
-                
-                if good_minutes < 0.5
-                    subjectswithoutenoughdata = [subjectswithoutenoughdata; strcat(char(output_directory),char(orig_cifti_filename), '_lessthan30sec_', {num2str(FD_threshold)}, '.', {suffix2})];
-                elseif minutes_limit > good_minutes
-                    dconn_paths_all_frames_at_thresh = [dconn_paths_all_frames_at_thresh; strcat(char(output_directory),char(orig_cifti_filename), '_all_frames_at_FD_', {num2str(FD_threshold)}, '.', {suffix2})];
-                elseif minutes_limit <= good_minutes
-                    dconn_paths_all_frames_at_thresh_min_lim = [dconn_paths_all_frames_at_thresh_min_lim; strcat(char(output_directory),char(orig_cifti_filename), '_', {num2str(minutes_limit)}, '_minutes_of_data_at_FD_', {num2str(FD_threshold)}, '.', {suffix2})];
-                else
-                    'something is wrong generating conc files'
-                end
-            end
-            
-        end
-    end
-else %use smoothed data
-    for i = 1:length(A)
-            folders = split(A{i},'/');
-            orig_cifti_filename = char(folders(end));
-            folder_input = join(folders(1:end-1),'/');
-            input_directory = [char(folder_input) '/'];            
-        if no_output
-            output_directory =char(input_directory);
-        end           
-        if strcmp(motion_file,'none')==1 || strcmp(motion_file,'None')==1
-            dconn_paths_all_frames = [dconn_paths_all_frames; strcat({A_smoothed{i}}, '_all_frames_at_FD_', {FD_threshold}, '.', {suffix2})];
-        else
-            load(B{i})
-            allFD = zeros(1,length(motion_data));
-            for j = 1:length(motion_data)
-                allFD(j) = motion_data{j}.FD_threshold;
-            end
-            FDidx = find(allFD == FD_threshold);
-            FDvec = motion_data{FDidx}.frame_removal;
-            FDvec = abs(FDvec-1);
-            
-            %% additional frame removal based on Outliers command: isoutlier with "median" method.
-            cmd = [wb_command ' -cifti-stats ' char(input_directory) char(orig_cifti_filename) ' -reduce STDEV > ' stdev_temp_filename];
-            system(cmd);
-            disp('waiting 60 seconds for writing of temp file before reading. Line:505 (not an error)')
-            pause(30);
-            clear cmd
-            STDEV_file=load(stdev_temp_filename); % load stdev of .nii file.
-            FDvec_keep_idx = find(FDvec==1); %find the kept frames from the FD mask
-            Outlier_file=isthisanoutlier(STDEV_file(FDvec_keep_idx),'median'); %find outlier
-            Outlier_idx=find(Outlier_file==1); %find outlier indices
-            FDvec(FDvec_keep_idx(Outlier_idx))=0; %set outliers to zero within FDvec
-            clear STDEV_file FDvec_keep_idx Outlier_file Outlier_idx
-            if strcmp(minutes_limit,'none')==1 || strcmp(minutes_limit,'None')==1 || strcmp(minutes_limit,'NONE')==1 
-                dconn_paths_all_frames_at_thresh = [dconn_paths_all_frames_at_thresh; strcat({A_smoothed{i}}, '_all_frames_at_FD_', {num2str(FD_threshold)}, '.', {suffix2})];
-            else
-                good_frames_idx = find(FDvec == 1);
-                good_minutes = (length(good_frames_idx)*TR)/60;
-                
-                if good_minutes < 0.5
-                    subjectswithoutenoughdata = [subjectswithoutenoughdata; strcat({A_smoothed{i}}, '_lessthan30sec_', {num2str(FD_threshold)}, '.', {suffix2})];
-                elseif minutes_limit > good_minutes
-                    dconn_paths_all_frames_at_thresh = [dconn_paths_all_frames_at_thresh; strcat({A_smoothed{i}}, '_all_frames_at_FD_', {num2str(FD_threshold)}, '.', {suffix2})];
-                elseif minutes_limit <= good_minutes
-                    dconn_paths_all_frames_at_thresh_min_lim = [dconn_paths_all_frames_at_thresh_min_lim; strcat({A_smoothed{i}}, '_', {num2str(minutes_limit)}, '_minutes_of_data_at_FD_', {num2str(FD_threshold)}, '.', {suffix2})];
-                else
-                    'something is wrong generating conc files'
-                end
-            end
-        end
-        
+    disp('Done making (p or d)conn.nii for subjects.  Making output .concs')
+    
+    %% GENERATE FINAL CONC text file here to use in other code (e.g. cifti_conn_pairwise_corr.m)
+    
+    if strcmp('conc',conc) == 1
+        concname = [dt_or_ptseries_conc_file '_' suffix3 '_of_' series]; %prefix name
+    else
+        concname = strsplit(dt_or_ptseries_conc_file, '/');
+        concname = char(concname(end));
+        concname = [concname '_' suffix3 '_of_' series]; %prefix name
     end
     
-end
-
-if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
-    for i = 1:length(A)
+    %different conc files that potentially could be produced
+    subjectswithoutenoughdata = [];
+    dconn_paths_all_frames = [];
+    dconn_paths_all_frames_at_thresh=[];
+    dconn_paths_all_frames_at_thresh_min_lim =[];
+    
+    %% Generate conc files
+    if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
+        for i = 1:length(A)
             folders = split(A{i},'/');
             orig_cifti_filename = char(folders(end));
             folder_input = join(folders(1:end-1),'/');
-            input_directory = [char(folder_input) '/'];            
-        if no_output
-            output_directory =char(input_directory);
-        end           
-        if strcmp(motion_file,'none')==1 || strcmp(motion_file,'None')==1
-            fileID = fopen([concname '_all_frames_at_FD_' motion_file '.conc'],'w');
-            [nrows,ncols] = size(dconn_paths_all_frames);
-            for row = 1:nrows
-                fprintf(fileID,'%s\n' ,dconn_paths_all_frames{row,:});
+            input_directory = [char(folder_input) '/'];
+            if no_output
+                output_directory =char(input_directory);
             end
-            fclose(fileID);
-        else
-            load(B{i})
-            allFD = zeros(1,length(motion_data));
-            for j = 1:length(motion_data)
-                allFD(j) = motion_data{j}.FD_threshold;
-            end
-            FDidx = find(allFD == FD_threshold);
-            FDvec = motion_data{FDidx}.frame_removal;
-            FDvec = abs(FDvec-1);
-            
-            if strcmp(additional_mask,'none')==1 || strcmp(additional_mask,'None')==1 || strcmp(additional_mask,'NONE')==1
-                disp('No additional mask supplied. Using full time series. Frames will be excluded only by FD (unless removal of outliers is indicated).')
+            if strcmp(motion_file,'none')==1 || strcmp(motion_file,'None')==1
+                dconn_paths_all_frames = [dconn_paths_all_frames; strcat(char(output_directory),char(orig_cifti_filename), '_all_frames_at_FD_', {FD_threshold}, '.', {suffix2})];
             else
-                additionalvec = load(additional_mask); %Load .mat file with 0s and 1s.  where 0 are frames to be discarded and 1s are frames to be used to make your matrix.
-                FDvec_temp = FDvec & (additionalvec);
-                FDvec = FDvec_temp;
-            end
-            if exist('remove_outliers','var') == 0 || remove_outliers == 1
-                disp('Removal outliers not specified.  It will be performed by default.')
+                load(B{i})
+                allFD = zeros(1,length(motion_data));
+                for j = 1:length(motion_data)
+                    allFD(j) = motion_data{j}.FD_threshold;
+                end
+                FDidx = find(allFD == FD_threshold);
+                FDvec = motion_data{FDidx}.frame_removal;
+                FDvec = abs(FDvec-1);
+                
                 %% additional frame removal based on Outliers command: isoutlier with "median" method.
                 cmd = [wb_command ' -cifti-stats ' char(input_directory) char(orig_cifti_filename) ' -reduce STDEV > ' stdev_temp_filename];
                 system(cmd);
-                disp('waiting 60 seconds for writing of temp file before reading. Line:558 (not an error)')
+                disp('waiting 60 seconds for writing of temp file before reading. Line:460 (not an error)')
+                pause(30);
+                STDEV_file=load(stdev_temp_filename); % load stdev of .nii file.
+                FDvec_keep_idx = find(FDvec==1); %find the kept frames from the FD mask
+                Outlier_file=isthisanoutlier(STDEV_file(FDvec_keep_idx),'median'); %find outlier
+                Outlier_idx=find(Outlier_file==1); %find outlier indices
+                FDvec(FDvec_keep_idx(Outlier_idx))=0; %set outliers to zero within FDvec
+                clear STDEV_file FDvec_keep_idx Outlier_file Outlier_idx
+                
+                if strcmp(minutes_limit,'none')==1 || strcmp(minutes_limit,'None')==1 || strcmp(minutes_limit,'NONE')==1
+                    dconn_paths_all_frames_at_thresh = [dconn_paths_all_frames_at_thresh; strcat(char(output_directory),char(orig_cifti_filename), '_all_frames_at_FD_', {num2str(FD_threshold)}, '.', {suffix2})];
+                else
+                    good_frames_idx = find(FDvec == 1);
+                    good_minutes = (length(good_frames_idx)*TR)/60;
+                    
+                    if good_minutes < 0.5
+                        subjectswithoutenoughdata = [subjectswithoutenoughdata; strcat(char(output_directory),char(orig_cifti_filename), '_lessthan30sec_', {num2str(FD_threshold)}, '.', {suffix2})];
+                    elseif minutes_limit > good_minutes
+                        dconn_paths_all_frames_at_thresh = [dconn_paths_all_frames_at_thresh; strcat(char(output_directory),char(orig_cifti_filename), '_all_frames_at_FD_', {num2str(FD_threshold)}, '.', {suffix2})];
+                    elseif minutes_limit <= good_minutes
+                        dconn_paths_all_frames_at_thresh_min_lim = [dconn_paths_all_frames_at_thresh_min_lim; strcat(char(output_directory),char(orig_cifti_filename), '_', {num2str(minutes_limit)}, '_minutes_of_data_at_FD_', {num2str(FD_threshold)}, '.', {suffix2})];
+                    else
+                        'something is wrong generating conc files'
+                    end
+                end
+                
+            end
+        end
+    else %use smoothed data
+        for i = 1:length(A)
+            folders = split(A{i},'/');
+            orig_cifti_filename = char(folders(end));
+            folder_input = join(folders(1:end-1),'/');
+            input_directory = [char(folder_input) '/'];
+            if no_output
+                output_directory =char(input_directory);
+            end
+            if strcmp(motion_file,'none')==1 || strcmp(motion_file,'None')==1
+                dconn_paths_all_frames = [dconn_paths_all_frames; strcat({A_smoothed{i}}, '_all_frames_at_FD_', {FD_threshold}, '.', {suffix2})];
+            else
+                load(B{i})
+                allFD = zeros(1,length(motion_data));
+                for j = 1:length(motion_data)
+                    allFD(j) = motion_data{j}.FD_threshold;
+                end
+                FDidx = find(allFD == FD_threshold);
+                FDvec = motion_data{FDidx}.frame_removal;
+                FDvec = abs(FDvec-1);
+                
+                %% additional frame removal based on Outliers command: isoutlier with "median" method.
+                cmd = [wb_command ' -cifti-stats ' char(input_directory) char(orig_cifti_filename) ' -reduce STDEV > ' stdev_temp_filename];
+                system(cmd);
+                disp('waiting 60 seconds for writing of temp file before reading. Line:505 (not an error)')
                 pause(30);
                 clear cmd
                 STDEV_file=load(stdev_temp_filename); % load stdev of .nii file.
@@ -676,122 +638,191 @@ if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || s
                 Outlier_idx=find(Outlier_file==1); %find outlier indices
                 FDvec(FDvec_keep_idx(Outlier_idx))=0; %set outliers to zero within FDvec
                 clear STDEV_file FDvec_keep_idx Outlier_file Outlier_idx
-                
-            else exist('remove_outliers','var') == 1 && remove_outliers == 0;
-                disp('Motion censoring performed on FD alone. Frames with outliers in BOLD std dev not removed');
+                if strcmp(minutes_limit,'none')==1 || strcmp(minutes_limit,'None')==1 || strcmp(minutes_limit,'NONE')==1
+                    dconn_paths_all_frames_at_thresh = [dconn_paths_all_frames_at_thresh; strcat({A_smoothed{i}}, '_all_frames_at_FD_', {num2str(FD_threshold)}, '.', {suffix2})];
+                else
+                    good_frames_idx = find(FDvec == 1);
+                    good_minutes = (length(good_frames_idx)*TR)/60;
+                    
+                    if good_minutes < 0.5
+                        subjectswithoutenoughdata = [subjectswithoutenoughdata; strcat({A_smoothed{i}}, '_lessthan30sec_', {num2str(FD_threshold)}, '.', {suffix2})];
+                    elseif minutes_limit > good_minutes
+                        dconn_paths_all_frames_at_thresh = [dconn_paths_all_frames_at_thresh; strcat({A_smoothed{i}}, '_all_frames_at_FD_', {num2str(FD_threshold)}, '.', {suffix2})];
+                    elseif minutes_limit <= good_minutes
+                        dconn_paths_all_frames_at_thresh_min_lim = [dconn_paths_all_frames_at_thresh_min_lim; strcat({A_smoothed{i}}, '_', {num2str(minutes_limit)}, '_minutes_of_data_at_FD_', {num2str(FD_threshold)}, '.', {suffix2})];
+                    else
+                        'something is wrong generating conc files'
+                    end
+                end
             end
             
-            good_frames_idx = find(FDvec == 1);
-            good_minutes = (length(good_frames_idx)*TR)/60;
-            
-            if strcmp(minutes_limit,'none')==1 || strcmp(minutes_limit,'None')==1 || strcmp(minutes_limit,'NONE')==1
-                fileID = fopen([concname '_all_frames_at_FD_' num2str(FD_threshold) '.conc'],'w');
-                [nrows,ncols] = size(dconn_paths_all_frames_at_thresh);
+        end
+        
+    end
+    
+    if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
+        for i = 1:length(A)
+            folders = split(A{i},'/');
+            orig_cifti_filename = char(folders(end));
+            folder_input = join(folders(1:end-1),'/');
+            input_directory = [char(folder_input) '/'];
+            if no_output
+                output_directory =char(input_directory);
+            end
+            if strcmp(motion_file,'none')==1 || strcmp(motion_file,'None')==1
+                fileID = fopen([concname '_all_frames_at_FD_' motion_file '.conc'],'w');
+                [nrows,ncols] = size(dconn_paths_all_frames);
                 for row = 1:nrows
-                    fprintf(fileID,'%s\n' ,dconn_paths_all_frames_at_thresh{row,:});
+                    fprintf(fileID,'%s\n' ,dconn_paths_all_frames{row,:});
+                end
+                fclose(fileID);
+            else
+                load(B{i})
+                allFD = zeros(1,length(motion_data));
+                for j = 1:length(motion_data)
+                    allFD(j) = motion_data{j}.FD_threshold;
+                end
+                FDidx = find(allFD == FD_threshold);
+                FDvec = motion_data{FDidx}.frame_removal;
+                FDvec = abs(FDvec-1);
+                
+                if strcmp(additional_mask,'none')==1 || strcmp(additional_mask,'None')==1 || strcmp(additional_mask,'NONE')==1
+                    disp('No additional mask supplied. Using full time series. Frames will be excluded only by FD (unless removal of outliers is indicated).')
+                else
+                    additionalvec = load(additional_mask); %Load .mat file with 0s and 1s.  where 0 are frames to be discarded and 1s are frames to be used to make your matrix.
+                    FDvec_temp = FDvec & (additionalvec);
+                    FDvec = FDvec_temp;
+                end
+                if exist('remove_outliers','var') == 0 || remove_outliers == 1
+                    disp('Removal outliers not specified.  It will be performed by default.')
+                    %% additional frame removal based on Outliers command: isoutlier with "median" method.
+                    cmd = [wb_command ' -cifti-stats ' char(input_directory) char(orig_cifti_filename) ' -reduce STDEV > ' stdev_temp_filename];
+                    system(cmd);
+                    disp('waiting 60 seconds for writing of temp file before reading. Line:558 (not an error)')
+                    pause(30);
+                    clear cmd
+                    STDEV_file=load(stdev_temp_filename); % load stdev of .nii file.
+                    FDvec_keep_idx = find(FDvec==1); %find the kept frames from the FD mask
+                    Outlier_file=isthisanoutlier(STDEV_file(FDvec_keep_idx),'median'); %find outlier
+                    Outlier_idx=find(Outlier_file==1); %find outlier indices
+                    FDvec(FDvec_keep_idx(Outlier_idx))=0; %set outliers to zero within FDvec
+                    clear STDEV_file FDvec_keep_idx Outlier_file Outlier_idx
+                    
+                else exist('remove_outliers','var') == 1 && remove_outliers == 0;
+                    disp('Motion censoring performed on FD alone. Frames with outliers in BOLD std dev not removed');
                 end
                 
-            else
+                good_frames_idx = find(FDvec == 1);
+                good_minutes = (length(good_frames_idx)*TR)/60;
                 
-                if good_minutes < 0.5
-                    fileID = fopen([concname '_lessthan30sec_' num2str(FD_threshold) '.conc'],'w');
-                    [nrows,ncols] = size(subjectswithoutenoughdata);
-                    for row = 1:nrows
-                        fprintf(fileID,'%s\n' ,subjectswithoutenoughdata{row,:});
-                    end
-                    fclose(fileID);
-                elseif minutes_limit > good_minutes
+                if strcmp(minutes_limit,'none')==1 || strcmp(minutes_limit,'None')==1 || strcmp(minutes_limit,'NONE')==1
                     fileID = fopen([concname '_all_frames_at_FD_' num2str(FD_threshold) '.conc'],'w');
                     [nrows,ncols] = size(dconn_paths_all_frames_at_thresh);
                     for row = 1:nrows
                         fprintf(fileID,'%s\n' ,dconn_paths_all_frames_at_thresh{row,:});
                     end
-                    fclose(fileID);
-                elseif minutes_limit <= good_minutes
-                    fileID = fopen([concname '_' num2str(minutes_limit) '_minutes_of_data_at_FD_' num2str(FD_threshold) '.conc'],'w');
-                    [nrows,ncols] = size(dconn_paths_all_frames_at_thresh_min_lim);
-                    for row = 1:nrows
-                        fprintf(fileID,'%s\n' ,dconn_paths_all_frames_at_thresh_min_lim{row,:});
+                    
+                else
+                    
+                    if good_minutes < 0.5
+                        fileID = fopen([concname '_lessthan30sec_' num2str(FD_threshold) '.conc'],'w');
+                        [nrows,ncols] = size(subjectswithoutenoughdata);
+                        for row = 1:nrows
+                            fprintf(fileID,'%s\n' ,subjectswithoutenoughdata{row,:});
+                        end
+                        fclose(fileID);
+                    elseif minutes_limit > good_minutes
+                        fileID = fopen([concname '_all_frames_at_FD_' num2str(FD_threshold) '.conc'],'w');
+                        [nrows,ncols] = size(dconn_paths_all_frames_at_thresh);
+                        for row = 1:nrows
+                            fprintf(fileID,'%s\n' ,dconn_paths_all_frames_at_thresh{row,:});
+                        end
+                        fclose(fileID);
+                    elseif minutes_limit <= good_minutes
+                        fileID = fopen([concname '_' num2str(minutes_limit) '_minutes_of_data_at_FD_' num2str(FD_threshold) '.conc'],'w');
+                        [nrows,ncols] = size(dconn_paths_all_frames_at_thresh_min_lim);
+                        for row = 1:nrows
+                            fprintf(fileID,'%s\n' ,dconn_paths_all_frames_at_thresh_min_lim{row,:});
+                        end
+                        fclose(fileID);
                     end
-                    fclose(fileID);
                 end
             end
         end
-    end
-else %do use smoothed data
-    for i = 1:length(A)
+    else %do use smoothed data
+        for i = 1:length(A)
             folders = split(A{i},'/');
             orig_cifti_filename = char(folders(end));
             folder_input = join(folders(1:end-1),'/');
-            input_directory = [char(folder_input) '/'];            
-        if no_output
-            output_directory =char(input_directory);
-        end           
-        if strcmp(motion_file,'none')==1 || strcmp(motion_file,'None')==1
-            fileID = fopen([concname '_all_frames_at_FD_' motion_file '.conc'],'w');
-            [nrows,ncols] = size(dconn_paths_all_frames);
-            for row = 1:nrows
-                fprintf(fileID,'%s\n' ,dconn_paths_all_frames{row,:});
+            input_directory = [char(folder_input) '/'];
+            if no_output
+                output_directory =char(input_directory);
             end
-            fclose(fileID);
-        else
-            load(B{i})
-            allFD = zeros(1,length(motion_data));
-            for j = 1:length(motion_data)
-                allFD(j) = motion_data{j}.FD_threshold;
-            end
-            FDidx = find(allFD == FD_threshold);
-            FDvec = motion_data{FDidx}.frame_removal;
-            FDvec = abs(FDvec-1);
-            
-            %% additional frame removal based on Outliers command: isoutlier with "median" method.
-            cmd = [wb_command ' -cifti-stats ' char(input_directory) char(orig_cifti_filename) ' -reduce STDEV > ' stdev_temp_filename];
-            system(cmd);
-            disp('waiting 60 seconds for writing of temp file before reading. Line:627 (not an error)')
-            pause(30);
-            clear cmd            
-            STDEV_file=load(stdev_temp_filename); % load stdev of .nii file.
-            FDvec_keep_idx = find(FDvec==1); %find the kept frames from the FD mask
-            Outlier_file=isthisanoutlier(STDEV_file(FDvec_keep_idx),'median'); %find outlier
-            Outlier_idx=find(Outlier_file==1); %find outlier indices
-            FDvec(FDvec_keep_idx(Outlier_idx))=0; %set outliers to zero within FDvec
-            clear STDEV_file FDvec_keep_idx Outlier_file Outlier_idx
-            if strcmp(minutes_limit,'none')==1 || strcmp(minutes_limit,'None')==1 || strcmp(minutes_limit,'NONE')==1
-                fileID = fopen([concname '_SMOOTHED_' num2str(smoothing_kernal) '_all_frames_at_FD_' num2str(FD_threshold) '.conc'],'w');
-                [nrows,ncols] = size(dconn_paths_all_frames_at_thresh);
+            if strcmp(motion_file,'none')==1 || strcmp(motion_file,'None')==1
+                fileID = fopen([concname '_all_frames_at_FD_' motion_file '.conc'],'w');
+                [nrows,ncols] = size(dconn_paths_all_frames);
                 for row = 1:nrows
-                    fprintf(fileID,'%s\n' ,dconn_paths_all_frames_at_thresh{row,:});
+                    fprintf(fileID,'%s\n' ,dconn_paths_all_frames{row,:});
                 end
-            else     
-                good_frames_idx = find(FDvec == 1);
-                good_minutes = (length(good_frames_idx)*TR)/60;
+                fclose(fileID);
+            else
+                load(B{i})
+                allFD = zeros(1,length(motion_data));
+                for j = 1:length(motion_data)
+                    allFD(j) = motion_data{j}.FD_threshold;
+                end
+                FDidx = find(allFD == FD_threshold);
+                FDvec = motion_data{FDidx}.frame_removal;
+                FDvec = abs(FDvec-1);
                 
-                if good_minutes < 0.5
-                    fileID = fopen([concname '_SMOOTHED_' num2str(smoothing_kernal) '_lessthan30sec_' num2str(FD_threshold) '.conc'],'w');
-                    [nrows,ncols] = size(subjectswithoutenoughdata);
-                    for row = 1:nrows
-                        fprintf(fileID,'%s\n' ,subjectswithoutenoughdata{row,:});
-                    end
-                    fclose(fileID);
-                elseif minutes_limit > good_minutes
+                %% additional frame removal based on Outliers command: isoutlier with "median" method.
+                cmd = [wb_command ' -cifti-stats ' char(input_directory) char(orig_cifti_filename) ' -reduce STDEV > ' stdev_temp_filename];
+                system(cmd);
+                disp('waiting 60 seconds for writing of temp file before reading. Line:627 (not an error)')
+                pause(30);
+                clear cmd
+                STDEV_file=load(stdev_temp_filename); % load stdev of .nii file.
+                FDvec_keep_idx = find(FDvec==1); %find the kept frames from the FD mask
+                Outlier_file=isthisanoutlier(STDEV_file(FDvec_keep_idx),'median'); %find outlier
+                Outlier_idx=find(Outlier_file==1); %find outlier indices
+                FDvec(FDvec_keep_idx(Outlier_idx))=0; %set outliers to zero within FDvec
+                clear STDEV_file FDvec_keep_idx Outlier_file Outlier_idx
+                if strcmp(minutes_limit,'none')==1 || strcmp(minutes_limit,'None')==1 || strcmp(minutes_limit,'NONE')==1
                     fileID = fopen([concname '_SMOOTHED_' num2str(smoothing_kernal) '_all_frames_at_FD_' num2str(FD_threshold) '.conc'],'w');
                     [nrows,ncols] = size(dconn_paths_all_frames_at_thresh);
                     for row = 1:nrows
                         fprintf(fileID,'%s\n' ,dconn_paths_all_frames_at_thresh{row,:});
                     end
-                    fclose(fileID);
-                elseif minutes_limit <= good_minutes
-                    fileID = fopen([concname '_SMOOTHED_' num2str(smoothing_kernal) '_' num2str(minutes_limit) '_minutes_of_data_at_FD_' num2str(FD_threshold) '.conc'],'w');
-                    [nrows,ncols] = size(dconn_paths_all_frames_at_thresh_min_lim);
-                    for row = 1:nrows
-                        fprintf(fileID,'%s\n' ,dconn_paths_all_frames_at_thresh_min_lim{row,:});
+                else
+                    good_frames_idx = find(FDvec == 1);
+                    good_minutes = (length(good_frames_idx)*TR)/60;
+                    
+                    if good_minutes < 0.5
+                        fileID = fopen([concname '_SMOOTHED_' num2str(smoothing_kernal) '_lessthan30sec_' num2str(FD_threshold) '.conc'],'w');
+                        [nrows,ncols] = size(subjectswithoutenoughdata);
+                        for row = 1:nrows
+                            fprintf(fileID,'%s\n' ,subjectswithoutenoughdata{row,:});
+                        end
+                        fclose(fileID);
+                    elseif minutes_limit > good_minutes
+                        fileID = fopen([concname '_SMOOTHED_' num2str(smoothing_kernal) '_all_frames_at_FD_' num2str(FD_threshold) '.conc'],'w');
+                        [nrows,ncols] = size(dconn_paths_all_frames_at_thresh);
+                        for row = 1:nrows
+                            fprintf(fileID,'%s\n' ,dconn_paths_all_frames_at_thresh{row,:});
+                        end
+                        fclose(fileID);
+                    elseif minutes_limit <= good_minutes
+                        fileID = fopen([concname '_SMOOTHED_' num2str(smoothing_kernal) '_' num2str(minutes_limit) '_minutes_of_data_at_FD_' num2str(FD_threshold) '.conc'],'w');
+                        [nrows,ncols] = size(dconn_paths_all_frames_at_thresh_min_lim);
+                        for row = 1:nrows
+                            fprintf(fileID,'%s\n' ,dconn_paths_all_frames_at_thresh_min_lim{row,:});
+                        end
+                        fclose(fileID);
                     end
-                    fclose(fileID);
                 end
             end
         end
     end
-end
 else
 end
 disp('Done making output concs.')

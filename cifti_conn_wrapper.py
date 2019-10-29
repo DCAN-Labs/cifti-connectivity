@@ -4,7 +4,7 @@
 CIFTI conn wrapper
 Greg Conan: conan@ohsu.edu
 Created 2019-06-18
-Last Updated 2019-08-23
+Last Updated 2019-09-12
 """
 
 ##################################
@@ -310,6 +310,15 @@ def get_cli_args():
               "this argument to ignore this warning. Irrelevant for ptseries.")
     )
 
+    # Optional: Get name of .conc file listing connectivity matrices for
+    # cifti_conn_pairwise_corr
+    parser.add_argument(
+        "--conn_matrices",
+        help=("Name of .conc file listing all connectivity matrices to be "
+              "compared to the template by cifti_conn_pairwise_corr. By "
+              "default, the name will be automatically generated.")
+    )
+
     return validate_cli_args(parser.parse_args(), parser)
 
 
@@ -380,7 +389,8 @@ def validate_cli_args(cli_args, parser):
 
     # Add list of connectivity matrices to CLI args namespace if pairwise_corr
     # is being run
-    if CHOICES_TO_RUN[2] in cli_args.scripts_to_run:
+    if (CHOICES_TO_RUN[2] in cli_args.scripts_to_run
+            and not cli_args.conn_matrices):
         cli_args.__setattr__("conn_matrices", get_conn_matrices_list(cli_args))
 
         # If cifti_conn_matrix will make conn_matrices .conc file, set a flag
@@ -775,7 +785,7 @@ def cifti_conn_pairwise_corr(cli_args):
 
     # Call cifti_conn_pairwise_corr script
     subprocess.check_call([DEFAULT_SOURCE + SCRIPT_PAIRWISE_CORR,
-                               cli_args.mre_dir] + parameters)
+                           cli_args.mre_dir] + parameters)
 
     # If user said not to keep conn matrices but pairwise_corr used them,
     # then try to delete the conn matrices after pairwise_corr finishes

@@ -4,7 +4,7 @@
 CIFTI conn wrapper
 Greg Conan: conan@ohsu.edu
 Created 2019-06-18
-Last Updated 2019-09-12
+Last Updated 2019-11-01
 """
 
 ##################################
@@ -122,12 +122,98 @@ def get_cli_args():
               + ", ".join(CHOICES_TO_RUN))
     )
 
+    # Optional: Get name of additional mask to put on top of FD threshold
+    parser.add_argument(
+        "-a",
+        "--additional_mask",
+        default="none",
+        help=("Additional mask on top of the FD threshold. The mask should be "
+              "a .mat file with 0s and 1s where 0 are frames to be discarded "
+              "and 1s are frames to be used to make your matrix. This mask "
+              "can be used to extract rests between blocks of task. This "
+              "vector of ones and zeros should be the same length as your "
+              "dtseries.")
+    )
+
+    # Option: Specify whether to use beta file size reduction for dconns
+    parser.add_argument(
+        "-b",
+        "--beta8",
+        action="store_const",
+        const="1",
+        default="0",
+        help=("Beta version to reduce file size. Include this flag to reduce "
+              "floating point precision and discard lower triangle of matrix. "
+              "Exclude it to leave the same.  If included, this will produce "
+              "8Gb .dconns. Otherwise, this will make 33Gb .dconns. This "
+              "option does nothing for ptseries.")
+    )
+
+    # Optional: Specify whether to make list of conn matrices made by wrapper
+    parser.add_argument(
+        "-c",
+        "--make_conn_conc",
+        action="store_const",
+        const="1",
+        default="0",
+        help=("Make a list of connectivity matrices created by this wrapper. "
+              "By default, the wrapper will not make a list.")
+    )
+
+    # Optional: Give path to MATLAB Runtime Environment (MRE) directory
+    parser.add_argument(
+        "-e",
+        "--mre_dir",
+        help=("Path to directory containing MATLAB Runtime Environment (MRE)"
+              "version 9.1 or newer. This is used to run compiled MATLAB "
+              "scripts. This argument must be a valid path to an existing "
+              "folder.")
+    )
+
+    # Optional: Get frame displacement motion threshold
+    default_fd_threshold = "0.2"
+    parser.add_argument(
+        "-f",
+        "--fd_threshold",
+        default=default_fd_threshold,
+        type=none_or_valid_float_value_as_string,
+        help=("Specify motion threshold (maximum amount of acceptable motion "
+              "between frames of a scan) for your data. Default value is "
+              + default_fd_threshold)
+    )
+
     # Optional: Get path to directory containing HCP CIFTI conn scripts
     parser.add_argument(
         "-i",
         "--input",
         help=("Directory containing all HCP conn data files. By default, this "
               "will be the directory containing the time series file.")
+    )
+
+    # Optional: Specify whether to keep or to delete dconn/pconn files after
+    # creating them.
+    parser.add_argument(
+        "-k",
+        "--keep_conn_matrices",
+        action="store_const",
+        const="1",
+        default="0",
+        help=("If this flag is included, then the wrapper will keep the "
+              "dconn/pconn after creating them. Otherwise, it will delete the "
+              "d/pconns after adding them to the average d/pconn.")
+    )
+
+    # Optional: Get name of left surface .conc file
+    parser.add_argument(
+        "-l",
+        "--left",
+        nargs="?",
+        const=GROUP_LEFT_CONC,
+        default="none",
+        help=(".conc file name of subjects' left midthicknessfile. Include "
+              "this flag if smoothing will be run. If this flag is included"
+              "but no filename is given, then " + GROUP_LEFT_CONC
+              + " will be used as the default name.")
     )
 
     # Optional: Get name of .conc file listing FNL motion mat files
@@ -145,23 +231,23 @@ def get_cli_args():
               "after this flag as an argument.")
     )
 
-    # Optional: Get name of template file to create
+    # Optional: Get name of .conc file listing connectivity matrices for
+    # cifti_conn_pairwise_corr
     parser.add_argument(
-        "-t",
-        "--template",
-        help="File path and name of template file to be created."
+        "-n",
+        "--conn_matrices",
+        help=("Name of .conc file listing all connectivity matrices to be "
+              "compared to the template by cifti_conn_pairwise_corr. By "
+              "default, the name will be automatically generated.")
     )
 
-    # Optional: Get frame displacement motion threshold
-    default_fd_threshold = "0.2"
+    # Optional: Specify output folder
     parser.add_argument(
-        "-f",
-        "--fd_threshold",
-        default=default_fd_threshold,
-        type=none_or_valid_float_value_as_string,
-        help=("Specify motion threshold (maximum amount of acceptable motion "
-              "between frames of a scan) for your data. Default value is "
-              + default_fd_threshold)
+        "-o",
+        "--output",
+        default=DEFAULT_OUTPUT,
+        help=("Location to save all output files to. By default, this will be "
+              + DEFAULT_OUTPUT)
     )
 
     # Optional: Get minutes limit
@@ -174,30 +260,6 @@ def get_cli_args():
               "correlation matrix. The default minutes limit of 'none' "
               "will make an 'allframesbelowFDX' .dconn. Subjects will have "
               "differing numbers of time points that go into each .dconn")
-    )
-
-    # Optional: Get smoothing kernel for dconns
-    parser.add_argument(
-        "-s",
-        "--smoothing_kernel",
-        default="none",
-        type=none_or_valid_float_value_as_string,
-        help=("Specify smoothing kernel. If this flag is excluded, then no "
-              "smoothing kernel will be used. Smoothing on ptseries is not "
-              "supported.")
-    )
-
-    # Optional: Get name of left surface .conc file
-    parser.add_argument(
-        "-l",
-        "--left",
-        nargs="?",
-        const=GROUP_LEFT_CONC,
-        default="none",
-        help=(".conc file name of subjects' left midthicknessfile. Include "
-              "this flag if smoothing will be run. If this flag is included"
-              "but no filename is given, then " + GROUP_LEFT_CONC
-              + " will be used as the default name.")
     )
 
     # Optional: Get name of right surface .conc file
@@ -213,73 +275,38 @@ def get_cli_args():
               + " will be used as the default name.")
     )
 
-    # Option: Specify whether to use beta file size reduction for dconns
+    # Optional: Get smoothing kernel for dconns
     parser.add_argument(
-        "-b",
-        "--beta8",
-        action="store_const",
-        const="1",
-        default="0",
-        help=("Beta version to reduce file size. Include this flag to reduce "
-              "floating point precision and discard lower triangle of matrix. "
-              "Exclude it to leave the same.  If included, this will produce "
-              "8Gb .dconns. Otherwise, this will make 33Gb .dconns. This "
-              "option does nothing for ptseries.")
-    )
-
-    # Optional: Specify whether to keep or to delete dconn/pconn files after
-    # creating them.
-    parser.add_argument(
-        "-k",
-        "--keep_conn_matrices",
-        action="store_const",
-        const="1",
-        default="0",
-        help=("If this flag is included, then the wrapper will keep the "
-              "dconn/pconn after creating them. Otherwise, it will delete the "
-              "d/pconns after adding them to the average d/pconn.")
-    )
-
-    # Optional: Specify output folder
-    parser.add_argument(
-        "-o",
-        "--output",
-        default=DEFAULT_OUTPUT,
-        help=("Location to save all output files to. By default, this will be "
-              + DEFAULT_OUTPUT)
-    )
-
-    # Optional: Give path to MATLAB Runtime Environment (MRE) directory
-    parser.add_argument(
-        "--mre_dir",
-        help=("Path to directory containing MATLAB Runtime Environment (MRE)"
-              "version 9.1 or newer. This is used to run compiled MATLAB "
-              "scripts. This argument must be a valid path to an existing "
-              "folder.")
-    )
-
-    # Optional: Specify path to wb_command
-    parser.add_argument(
-        "-w",
-        "--wb_command",
-        help="Path to workbench command file called 'wb_command'."
-    )
-
-    # Optional: Get name of additional mask to put on top of FD threshold
-    parser.add_argument(
-        "-a",
-        "--additional_mask",
+        "-s",
+        "--smoothing_kernel",
         default="none",
-        help=("Additional mask on top of the FD threshold. The mask should be "
-              "a .mat file with 0s and 1s where 0 are frames to be discarded "
-              "and 1s are frames to be used to make your matrix. This mask "
-              "can be used to extract rests between blocks of task. This "
-              "vector of ones and zeros should be the same length as your "
-              "dtseries.")
+        type=none_or_valid_float_value_as_string,
+        help=("Specify smoothing kernel. If this flag is excluded, then no "
+              "smoothing kernel will be used. Smoothing on ptseries is not "
+              "supported.")
+    )
+
+    # Optional: Get name of template file to create
+    parser.add_argument(
+        "-t",
+        "--template",
+        help="File path and name of template file to be created."
+    )
+
+    # Optional: Ignore warnings about output .dconn file sizes
+    parser.add_argument(
+        "-u",
+        "--suppress_warnings",
+        action="store_true",
+        help=("By default, the wrapper will ask user for confirmation if "
+              "the .dconn files created by the wrapper will exceed "
+              + str(WARNING_IF_DCONN_SIZE_EXCEEDS) + " gigabytes. Include "
+              "this argument to ignore this warning. Irrelevant for ptseries.")
     )
 
     # Optional: Specify whether to remove outliers from BOLD signal
     parser.add_argument(
+        "-v",
         "--remove_outliers",
         action="store_const",
         const="1",
@@ -289,34 +316,11 @@ def get_cli_args():
               "the FD threshold.")
     )
 
-    # Optional: Specify whether to make list of conn matrices made by wrapper
+    # Optional: Specify path to wb_command
     parser.add_argument(
-        "-c",
-        "--make_conn_conc",
-        action="store_const",
-        const="1",
-        default="0",
-        help=("Make a list of connectivity matrices created by this wrapper. "
-              "By default, the wrapper will not make a list.")
-    )
-
-    # Optional: Ignore warnings about output .dconn file sizes
-    parser.add_argument(
-        "--suppress_warnings",
-        action="store_true",
-        help=("By default, the wrapper will ask user for confirmation if "
-              "the .dconn files created by the wrapper will exceed "
-              + str(WARNING_IF_DCONN_SIZE_EXCEEDS) + " gigabytes. Include "
-              "this argument to ignore this warning. Irrelevant for ptseries.")
-    )
-
-    # Optional: Get name of .conc file listing connectivity matrices for
-    # cifti_conn_pairwise_corr
-    parser.add_argument(
-        "--conn_matrices",
-        help=("Name of .conc file listing all connectivity matrices to be "
-              "compared to the template by cifti_conn_pairwise_corr. By "
-              "default, the name will be automatically generated.")
+        "-w",
+        "--wb_command",
+        help="Path to workbench command file called 'wb_command'."
     )
 
     return validate_cli_args(parser.parse_args(), parser)

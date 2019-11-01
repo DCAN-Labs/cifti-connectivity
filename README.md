@@ -108,11 +108,6 @@ This code build a connectivity matrix from BOLD times series data. The code has 
 
 The `time_series` argument passed to `cifti_conn_matrix` is either 'dtseries' or 'ptseries'. The wrapper infers it from the `series_file`.
 
-Options for `cifti_conn_matrix` which have not yet been added to the MATLAB scripts or the wrapper include the following:
-- `removeoutliers` should be either 0 or 1.  If 1, outliers are removed from the BOLD signal.  If 0 frames will only be censored by the FD threshold.
-- `additionalmask` should take one file name. Addional mask on top of the FD threshold.  This mask can be used to extract rests between blocks of task. This vector of 1s and zeros should be the same length as your dtseries.
-- `make_dconn_conc` should be either 0 or 1. - make a list of connectivity matrices that were created by this script.
-
 ### cifti_conn_template
 This code builds a template d/pconn from a list of d/ptseries.  If the d/pconn exists, if will load it instead of making it anew (calls `cifti_conn_matrix`). It takes the same arguments from the wrapper as `cifti_conn_matrix`, as well as `keep_conn_matrices`.
 
@@ -139,6 +134,9 @@ The `p_or_dconn` argument passed to `cifti_conn_pairwise_corr` is simply the `ti
 
 ### 8/23/2019
 - Fixed a bug where the wrapper would not run unless connectivity matrix list `.conc` file already exited, even though the wrapper includes the functionality to make that list.
+
+### 11/1/2019
+- Fixed a bug where `cifti_conn_matrix` would treat two different files with the same name in different folders as if they were the same file, skipping over one. Also, updated README to reflect that --remove_outliers, --additional_mask, and --make_conn_conc were added.
 
 ## Feature Requests
  - https://trello.com/b/hQkyYits/robo-science

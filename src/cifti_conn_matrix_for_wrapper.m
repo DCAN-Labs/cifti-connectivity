@@ -1,4 +1,4 @@
-function cifti_conn_matrix_for_wrapper(wb_command, dt_or_ptseries_conc_file,series,motion_file, FD_threshold, TR, minutes_limit, smoothing_kernal,left_surface_file, right_surface_file, bit8,remove_outliers, additional_mask, make_dconn_conc, output_directory)
+function outfile = cifti_conn_matrix_for_wrapper(wb_command, dt_or_ptseries_conc_file,series,motion_file, FD_threshold, TR, minutes_limit, smoothing_kernal,left_surface_file, right_surface_file, bit8,remove_outliers, additional_mask, make_dconn_conc, output_directory, dtseries_conc)
 
 % This should be the same as cifti_conn_matrix_exaversion, except that it
 % accepts and uses these parameters: remove_outliers, additional_mask, make_dconn_conc
@@ -39,7 +39,8 @@ orig_conc_folder_input = [char(orig_conc_folder_input) '/'];
 no_output = 0;
 if exist('output_directory','var') == 0
     output_directory =[];
-    no_output = 1;
+    no_output = 1;    disp('All series files exist continuing ...')
+
 else
     output_directory = char(output_directory);
 end
@@ -118,26 +119,10 @@ end
 %wb_command = '/usr/local/bin/wb_command';
 %wb_command = 'LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6 /usr/local/bin/wb_command'; % workbench command path
 %wb_command = '/Applications/workbench/bin_macosx64/wb_command'; % workbench command path
+
 %% Load concatenated paths (i.e. paths to ciftis)
-
-%check to see if there one subject or a a list of subjects in conc file.
-conc = strsplit(dt_or_ptseries_conc_file, '.');
-conc = char(conc(end));
-if strcmp('conc',conc) == 1
-    A = importdata(dt_or_ptseries_conc_file);
-else
-    A = {dt_or_ptseries_conc_file};
-end
-
-for i = 1:length(A)
-    if exist(A{i}) == 0
-        NOTE = ['Subject Series ' num2str(i) ' does not exist']
-        return
-    else
-    end
-end
-disp('All series files exist continuing ...')
-
+[A, conc] = get_paths_from_conc(dt_or_ptseries_conc_file);
+[dtseries_E, ~] = get_paths_from_conc(dtseries_conc);
 
 %% set file extensions
 disp(series)
@@ -214,10 +199,10 @@ if strcmp(motion_file,'none')==1 || strcmp(motion_file,'None')==1 % run this if 
             output_directory =char(input_directory);
         end
         if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
-            temp_name = [char(output_directory) char(orig_cifti_filename) '_all_frames_at_FD_' motion_file '_' char(folders(end-1)) '.' suffix2];
+            outfile = [char(output_directory) char(orig_cifti_filename) '_all_frames_at_FD_' motion_file '_' char(folders(end-1)) '.' suffix2];
         else
             A_smoothed{i} = [char(output_directory) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernal) '.' suffix];
-            temp_name = [A_smoothed{i} '_all_frames_at_FD_' motion_file '_' char(folders(end-1)) '.' suffix2];
+            outfile = [A_smoothed{i} '_all_frames_at_FD_' motion_file '_' char(folders(end-1)) '.' suffix2];
             if exist(A_smoothed{i}) == 0 %check to see if smoothing file does not exist
                 clear smoothedfile_name
                 Column = 'COLUMN';
@@ -230,7 +215,7 @@ if strcmp(motion_file,'none')==1 || strcmp(motion_file,'None')==1 % run this if 
                 disp('Smoothed series already created for this subject')
             end
         end
-        if matrix_not_already_exist(temp_name) % make sure the matrix doesn't already exist
+        if matrix_not_already_exist(outfile) % make sure the matrix doesn't already exist
             %%%%
             if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
                 
@@ -299,7 +284,7 @@ else %use motion cenosoring
             if exist('remove_outliers','var') == 0 || remove_outliers == 1 %remove outliers from external mask
                 disp('Removal outliers not specified.  It will be performed by default.')
                 %% additional frame removal based on Outliers command: isoutlier with "median" method.
-                cmd = [wb_command ' -cifti-stats ' A{i} ' -reduce STDEV > ' stdev_temp_filename];
+                cmd = [wb_command ' -cifti-stats ' dtseries_E{i} ' -reduce STDEV > ' stdev_temp_filename];      % Changed A{i} to new dtseries .conc file parameter
                 system(cmd);
                 clear cmd
                 disp('waiting 10 seconds for writing of temp file before reading. Line:258 (not an error)')
@@ -376,10 +361,10 @@ else %use motion cenosoring
             fclose(fileID);
             
             if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
-                temp_name = [char(output_directory) char(orig_cifti_filename) '_all_frames_at_FD_' num2str(FD_threshold) '_' char(folders(end-1)) '.' suffix2];
+                outfile = [char(output_directory) char(orig_cifti_filename) '_all_frames_at_FD_' num2str(FD_threshold) '_' char(folders(end-1)) '.' suffix2];
             else
                 A_smoothed{i} = [char(output_directory) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernal) '.' suffix];
-                temp_name = [A_smoothed{i} '_all_frames_at_FD_' num2str(FD_threshold) '_' char(folders(end-1)) '.' suffix2];
+                outfile = [A_smoothed{i} '_all_frames_at_FD_' num2str(FD_threshold) '_' char(folders(end-1)) '.' suffix2];
                 if exist(A_smoothed{i}) ==0 %check to see if smoothed file exists yet.
                     Column = 'COLUMN';
                     cmd = [wb_command ' -cifti-smoothing ' char(input_directory) char(orig_cifti_filename) ' ' num2str(smoothing_kernal) ' ' num2str(smoothing_kernal) ' ' Column ' ' char(output_directory) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernal)  '_' char(folders(end-1)) '.' suffix  ' -left-surface ' C{i} '  -right-surface ' D{i}]
@@ -392,7 +377,7 @@ else %use motion cenosoring
                 end
             end
             
-            if matrix_not_already_exist(temp_name) % if the matrix already exists skip      add folder_input as param?
+            if matrix_not_already_exist(outfile) % if the matrix already exists skip      add folder_input as param?
                 if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
                     cmd = [wb_command output_precision ' -cifti-correlation ' char(input_directory) char(orig_cifti_filename) ' ' char(output_directory) char(orig_cifti_filename) '_all_frames_at_FD_' num2str(FD_threshold) '_' char(folders(end-1)) '.' suffix2 ' -weights ' char(output_directory) char(orig_motion_filename) '_' num2str(FD_threshold) '_cifti_censor_FD_vector_All_Good_Frames.txt -fisher-z'];
                     %cmd = [wb_command ' -cifti-correlation ' A{i} ' ' A{i} '_all_frames_at_FD_' num2str(FD_threshold) '.' suffix2 ' -weights ' B{i} '_' num2str(FD_threshold) '_cifti_censor_FD_vector_All_Good_Frames.txt -fisher-z'];
@@ -430,10 +415,10 @@ else %use motion cenosoring
                 fclose(fileID);
                 
                 if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
-                    temp_name = [char(output_directory) char(orig_cifti_filename) '_all_frames_at_FD_' num2str(FD_threshold) '_' char(folders(end-1)) '.' suffix2];
+                    outfile = [char(output_directory) char(orig_cifti_filename) '_all_frames_at_FD_' num2str(FD_threshold) '_' char(folders(end-1)) '.' suffix2];
                 else
                     A_smoothed{i} = [char(output_directory) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernal) '.' suffix];
-                    temp_name = [A_smoothed{i} '_all_frames_at_FD_' num2str(FD_threshold) '_' char(folders(end-1)) '.' suffix2];
+                    outfile = [A_smoothed{i} '_all_frames_at_FD_' num2str(FD_threshold) '_' char(folders(end-1)) '.' suffix2];
                     if exist(A_smoothed{i}) ==0 %check to see if smoothed file exists yet.
                         Column = 'COLUMN';
                         cmd = [wb_command ' -cifti-smoothing ' char(input_directory) char(orig_cifti_filename) ' ' num2str(smoothing_kernal) ' ' num2str(smoothing_kernal) ' ' Column ' ' char(output_directory) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernal)  '_' char(folders(end-1)) '.' suffix  ' -left-surface ' C{i} '  -right-surface ' D{i}];
@@ -446,7 +431,7 @@ else %use motion cenosoring
                     end
                 end
                 
-                if matrix_not_already_exist(temp_name) % if the matrix already exists skip
+                if matrix_not_already_exist(outfile) % if the matrix already exists skip
                     if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
                         cmd = [wb_command output_precision ' -cifti-correlation ' char(input_directory) char(orig_cifti_filename) ' ' char(output_directory) char(orig_cifti_filename) '_all_frames_at_FD_' num2str(FD_threshold)  '_' char(folders(end-1)) '.' suffix2 ' -weights ' char(output_directory) char(orig_motion_filename) '_' num2str(FD_threshold) '_cifti_censor_FD_vector_All_Good_Frames.txt -fisher-z'];
                         %cmd = [wb_command ' -cifti-correlation ' A{i} ' ' A{i} '_all_frames_at_FD_' num2str(FD_threshold) '.' suffix2 ' -weights ' B{i} '_' num2str(FD_threshold) '_cifti_censor_FD_vector_All_Good_Frames.txt -fisher-z'];
@@ -484,10 +469,10 @@ else %use motion cenosoring
                 fprintf(fileID,'%1.0f\n',FDvec_cut);
                 fclose(fileID);
                 if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
-                    temp_name = [char(output_directory) char(orig_cifti_filename) '_' num2str(minutes_limit) '_minutes_of_data_at_FD_' num2str(FD_threshold) '_' char(folders(end-1)) '.' suffix2]
+                    outfile = [char(output_directory) char(orig_cifti_filename) '_' num2str(minutes_limit) '_minutes_of_data_at_FD_' num2str(FD_threshold) '_' char(folders(end-1)) '.' suffix2]
                 else % Smooth
                     A_smoothed{i} = [char(output_directory) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernal) '_' char(folders(end-1)) '.' suffix];
-                    temp_name = [A_smoothed{i} '_' num2str(minutes_limit) '_minutes_of_data_at_FD_' num2str(FD_threshold) '_' char(folders(end-1)) '.' suffix2]
+                    outfile = [A_smoothed{i} '_' num2str(minutes_limit) '_minutes_of_data_at_FD_' num2str(FD_threshold) '_' char(folders(end-1)) '.' suffix2]
                     if exist(A_smoothed{i}) == 0
                         Column = 'COLUMN';
                         cmd = [wb_command ' -cifti-smoothing ' char(input_directory) char(orig_cifti_filename) ' ' num2str(smoothing_kernal) ' ' num2str(smoothing_kernal) ' ' Column ' ' char(output_directory) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernal)  '_' char(folders(end-1)) '.' suffix  ' -left-surface ' C{i} '  -right-surface ' D{i}];
@@ -499,7 +484,7 @@ else %use motion cenosoring
                         disp('Smoothed series already created for this subject')
                     end
                 end
-                if matrix_not_already_exist(temp_name) % check to see if the file already exists
+                if matrix_not_already_exist(outfile) % check to see if the file already exists
                     if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
                         cmd = [wb_command output_precision ' -cifti-correlation ' char(input_directory) char(orig_cifti_filename) ' ' char(output_directory) char(orig_cifti_filename) '_' num2str(minutes_limit) '_minutes_of_data_at_FD_' num2str(FD_threshold) '_' char(folders(end-1)) '.' suffix2 ' -weights ' char(output_directory) char(orig_motion_filename) '_' num2str(FD_threshold) '_cifti_censor_FD_vector_' num2str(minutes_limit) '_minutes_of_data_at_' num2str(FD_threshold) '_threshold.txt -fisher-z'];
                         %cmd = [wb_command ' -cifti-correlation ' A{i} ' ' A{i} '_' num2str(minutes_limit) '_minutes_of_data_at_FD_' num2str(FD_threshold) '.' suffix2 ' -weights ' B{i} '_' num2str(FD_threshold) '_cifti_censor_FD_vector_' num2str(minutes_limit) '_minutes_of_data_at_' num2str(FD_threshold) '_threshold.txt -fisher-z'];
@@ -828,8 +813,32 @@ end
 disp('Done making output concs.')
 end
 
+
 function not_exist = matrix_not_already_exist(to_make)
     
     not_exist = (exist(to_make) == 0);
+end
+
+
+function [paths, conc] = get_paths_from_conc(conc_file)
+
+    %check to see if there 1 subject or a list of subjects in conc file.
+    conc = strsplit(conc_file, '.');
+    conc = char(conc(end));
+    if strcmp('conc',conc) == 1
+        paths = importdata(conc_file);
+    else
+        paths = {conc_file};
+    end
+
+    % Validate that all paths in .conc file point to real files
+    for i = 1:length(paths)
+        if exist(paths{i}) == 0
+            NOTE = ['Subject Series ' num2str(i) ' does not exist']
+            return
+        else
+        end
+    end
+    disp('All series files exist continuing ...')
 end
 

@@ -1,4 +1,4 @@
-function cifti_conn_template_for_wrapper(wb_command, dt_or_ptseries_conc_file, series, motion_file, FD_threshold, TR, minutes_limit, smoothing_kernal, left_surface_file, right_surface_file, bit8, remove_outliers, additional_mask, make_conn_conc, output_directory, keep_conn_matrices, template_file)
+function cifti_conn_template_for_wrapper(wb_command, dt_or_ptseries_conc_file, series, motion_file, FD_threshold, TR, minutes_limit, smoothing_kernal, left_surface_file, right_surface_file, bit8, remove_outliers, additional_mask, make_conn_conc, output_directory, dtseries_conc, keep_conn_matrices, template_file)
 % wb_command = workbench command path
 % dt_or_ptseries_conc_file = dense timeseries or parcellated timeseries conc
 % file (i.e. text file with paths to each file being included
@@ -40,7 +40,7 @@ function cifti_conn_template_for_wrapper(wb_command, dt_or_ptseries_conc_file, s
 
 %% Change strings to numbers if not already numbers  (i.e.if using the shell command)
 %Check to make sure that smoothing kernal is a number
-if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
+if is_none(smoothing_kernal)
     smoothing_kernal= 'none';
 elseif isnumeric(smoothing_kernal)==1
     disp('kernal is passed in as numeric')
@@ -68,7 +68,7 @@ end
 
 %Check to make sure that  minutes limit is a number (unless you've set it
 %to 'none')
-if strcmp(minutes_limit,'none')==1 || strcmp(minutes_limit,'None')==1 || strcmp(minutes_limit,'NONE')==1
+if is_none(minutes_limit)
     disp('Warning minutes limit is set to none.  Subjects might have different number of data point in individual matrices');
     minutes_limit= 'none';
 elseif isnumeric(minutes_limit)==1
@@ -124,7 +124,7 @@ else
 end
 
 %% Load Motion vector paths
-if strcmp(motion_file,'none')==1 || strcmp(motion_file,'None')==1
+if is_none(motion_file)
     'No motion files, will use all frames to generate matrices'
 else
     if strcmp('conc',conc) == 1
@@ -148,9 +148,11 @@ end
 %check to make sure there is a list of subjects in conc file.
 conc = strsplit(dt_or_ptseries_conc_file, '.');
 conc = char(conc(end));
-if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
+if is_none(smoothing_kernal)
     Note = ['No smoothing, continuing...'];
     if strcmp('conc',conc) == 1
+        left = left_surface_file;
+        right = right_surface_file;
     else
         'Need to input a conc file with several subjects or dtseries to average'
         return
@@ -180,497 +182,41 @@ else
         end
     end
     disp('All right surface files for smoothing exist continuing ...')
+    left = C{1};
+    right = D{1};
 end
-%% Generate Average Matrix
-%make first dconn.nii then rename
-if strcmp(minutes_limit,'none')==1 || strcmp(minutes_limit,'None')==1 || strcmp(minutes_limit,'NONE')==1
-    if strcmp(motion_file,'none')==1 || strcmp(motion_file,'None')==1 || strcmp(motion_file,'NONE')==1
-        if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
-            [~, matrix_filename, matrix_ext] = fileparts(char({A{1}}));
-            dconn_paths_none_minutes_at_thresh_min_lim = [char(strcat(output_directory, matrix_filename, matrix_ext, '_all_frames_at_FD_', {motion_file}, '.', {suffix2}))];
-            if exist(dconn_paths_none_minutes_at_thresh_min_lim) == 0
-                disp('conn.nii does not exist for this subject yet.  Running code to create matrix.')
-                cifti_conn_matrix_for_wrapper(wb_command, A{1},series,motion_file, FD_threshold, TR, minutes_limit, smoothing_kernal,left_surface_file,right_surface_file,bit8, remove_outliers, additional_mask, make_conn_conc, output_directory)
-                
-                % rename out put to average
-                %dconn_paths_all_frames = [char(strcat({A{1}}, '_all_frames_at_FD_', {motion_file}, '.', {suffix2}))];
-                if exist(dconn_paths_none_minutes_at_thresh_min_lim) == 0
-                    NOTE = ['Exiting...file ' dconn_paths_none_minutes_at_thresh_min_lim ' does not exist, likely because subject does not meet criteron or there was an error making their connectivity matrix']
-                    return
-                else
-                end
-            else
-                disp('conn.nii exist for this subject yet already.  Renaming to AVG for first subject.')
-            end
-            
-            [~, series_conc_name, series_conc_ext] = fileparts(char(dt_or_ptseries_conc_file));
-            output_conc = [output_directory series_conc_name series_conc_ext];
-            if keep_conn_matrices == 0
-                cmd = ['mv ' dconn_paths_none_minutes_at_thresh_min_lim ' ' output_conc '_AVG.' suffix2];
-            else
-                cmd = ['cp ' dconn_paths_none_minutes_at_thresh_min_lim ' ' output_conc '_AVG.' suffix2];
-            end
-            system(cmd);
-        else
-            A_smoothed = [A{1}(1:length(A{1})-13) '_SMOOTHED_' num2str(smoothing_kernal) '.' suffix];
-            [~, matrix_filename, matrix_ext] = fileparts(char(A_smoothed));
-            dconn_paths_none_minutes_at_thresh_min_lim = [char(strcat(output_directory, matrix_filename, matrix_ext, '_all_frames_at_FD_', {motion_file}, '.', {suffix2}))];
-            if exist(dconn_paths_none_minutes_at_thresh_min_lim) == 0
-                disp('conn.nii does not exist for this subject yet.  Running code to create matrix.')
-                cifti_conn_matrix_for_wrapper(wb_command, A{1},series,motion_file, FD_threshold, TR, minutes_limit, smoothing_kernal,C{1}, D{1},bit8, remove_outliers, additional_mask, make_conn_conc, output_directory)
-                %rename output to average
-                if exist(dconn_paths_none_minutes_at_thresh_min_lim) == 0
-                    NOTE = ['Exiting...file ' dconn_paths_none_minutes_at_thresh_min_lim ' does not exist, likely because subject does not meet criteron or there was an error making their connectivity matrix']
-                    return
-                else
-                end
-            else
-                disp('conn.nii exist for this subject yet already.  Renaming to AVG for first subject.')
-            end
-            [~, series_conc_name, series_conc_ext] = fileparts(char(dt_or_ptseries_conc_file));
-            output_conc = [output_directory series_conc_name series_conc_ext];
-            if keep_conn_matrices == 0
-                cmd = ['mv ' dconn_paths_none_minutes_at_thresh_min_lim ' ' output_conc '_AVG.' suffix2];
-            else
-                cmd = ['cp ' dconn_paths_none_minutes_at_thresh_min_lim ' ' output_conc '_AVG.' suffix2];
-            end
-            system(cmd);
-        end
-        
-    else % motion correction
-        if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
-            [~, matrix_filename, matrix_ext] = fileparts(char({A{1}}));
-            dconn_paths_none_minutes_at_thresh_min_lim = [char(strcat(output_directory, matrix_filename, matrix_ext, '_all_frames_at_FD_', {num2str(FD_threshold)}, '.', {suffix2}))];
-            if exist(dconn_paths_none_minutes_at_thresh_min_lim) == 0
-                disp('conn.nii does not exist for this subject yet.  Running code to create matrix.')
-                cifti_conn_matrix_for_wrapper(wb_command, A{1},series,B{1}, FD_threshold, TR, minutes_limit, smoothing_kernal,left_surface_file, right_surface_file,bit8, remove_outliers, additional_mask, make_conn_conc, output_directory)
-                % rename out put to average
-                %dconn_paths_none_minutes_at_thresh_min_lim = [char(strcat({A{1}}, '_all_frames_at_FD_', {num2str(FD_threshold)}, '.', {suffix2}))];
-                if exist(dconn_paths_none_minutes_at_thresh_min_lim) == 0
-                    NOTE = ['Exiting...file ' dconn_paths_none_minutes_at_thresh_min_lim ' does not exist, likely because subject does not meet criteron or there was an error making their connectivity matrix']
-                    return
-                else
-                end
-            else
-                disp('conn.nii exist for this subject yet already.  Renaming to AVG for first subject.')
-            end
-            [~, series_conc_name, series_conc_ext] = fileparts(char(dt_or_ptseries_conc_file));
-            output_conc = [output_directory series_conc_name series_conc_ext];
-            if keep_conn_matrices == 0
-            cmd = ['mv ' dconn_paths_none_minutes_at_thresh_min_lim ' ' output_conc '_AVG.' suffix2];
-            else
-            cmd = ['cp ' dconn_paths_none_minutes_at_thresh_min_lim ' ' output_conc '_AVG.' suffix2];
-            end
-            system(cmd); 
-            
-        else
-            A_smoothed = [output_directory A{1}(1:length(A{1})-13) '_SMOOTHED_' num2str(smoothing_kernal) '.' suffix];
-            [~, matrix_filename, matrix_ext] = fileparts(char(A_smoothed));
-            dconn_paths_none_minutes_at_thresh_min_lim = [char(strcat(output_directory, matrix_filename, matrix_ext, '_all_frames_at_FD_', {num2str(FD_threshold)}, '.', {suffix2}))];
-            if exist(dconn_paths_none_minutes_at_thresh_min_lim) == 0
-                disp('conn.nii does not exist for this subject yet.  Running code to create matrix.')
-                cifti_conn_matrix_for_wrapper(wb_command, A{1},series,B{1}, FD_threshold, TR, minutes_limit, smoothing_kernal,C{1}, D{1},bit8, remove_outliers, additional_mask, make_conn_conc, output_directory)
-                % rename out put to average
-                %A_smoothed = [A{1}(1:length(A{1})-13) '_SMOOTHED_' num2str(smoothing_kernal) '.' suffix];
-                %dconn_paths_none_minutes_at_thresh_min_lim = [char(strcat(A_smoothed, '_all_frames_at_FD_', {num2str(FD_threshold)}, '.', {suffix2}))];
-                if exist(dconn_paths_none_minutes_at_thresh_min_lim) == 0
-                    NOTE = ['Exiting...file ' dconn_paths_none_minutes_at_thresh_min_lim ' does not exist, likely because subject does not meet criteron or there was an error making their connectivity matrix']
-                    return
-                else
-                end
-                
-            else
-                disp('conn.nii exist for this subject yet already.  Renaming to AVG for first subject.')
-            end
-            [~, series_conc_name, series_conc_ext] = fileparts(char(dt_or_ptseries_conc_file));
-            output_conc = [output_directory series_conc_name series_conc_ext];
-            if keep_conn_matrices == 0
-                cmd = ['mv ' dconn_paths_none_minutes_at_thresh_min_lim ' ' output_conc '_AVG.' suffix2];
-            else
-                cmd = ['cp ' dconn_paths_none_minutes_at_thresh_min_lim ' ' output_conc '_AVG.' suffix2];
-            end
-            system(cmd);
-            
-        end
-    end
-else %minutes limit is a number
-    
-    if strcmp(motion_file,'none')==1 || strcmp(motion_file,'None')==1 || strcmp(motion_file,'NONE')==1
-        if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
-            [~, matrix_filename, matrix_ext] = fileparts(char({A{1}}));
-            dconn_paths_all_frames = [char(strcat(output_directory, matrix_filename, matrix_ext, '_all_frames_at_FD_', {motion_file}, '.', {suffix2}))];
-            if exist(dconn_paths_all_frames) == 0
-                disp('conn.nii does not exist for this subject yet.  Running code to create matrix.')
-                cifti_conn_matrix_for_wrapper(wb_command, A{1},series,motion_file, FD_threshold, TR, minutes_limit, smoothing_kernal,left_surface_file,right_surface_file,bit8, remove_outliers, additional_mask, make_conn_conc, output_directory)
-                
-                % rename out put to average
-                %dconn_paths_all_frames = [char(strcat({A{1}}, '_all_frames_at_FD_', {motion_file}, '.', {suffix2}))];
-                if exist(dconn_paths_all_frames) == 0
-                    NOTE = ['Exiting...file ' dconn_paths_all_frames ' does not exist, likely because subject does not meet criteron or there was an error making their connectivity matrix']
-                    return
-                else
-                end
-            else
-                disp('conn.nii exist for this subject yet already.  Renaming to AVG for first subject.')
-            end
-            [~, series_conc_name, series_conc_ext] = fileparts(char(dt_or_ptseries_conc_file));
-            output_conc = [output_directory series_conc_name series_conc_ext];
-            if keep_conn_matrices == 0
-                cmd = ['mv ' dconn_paths_all_frames ' ' output_conc '_AVG.' suffix2];
-            else
-                cmd = ['cp ' dconn_paths_all_frames ' ' output_conc '_AVG.' suffix2];
-            end
-            system(cmd);
-            
-        else %smoothing
-            
-            A_smoothed = [A{1}(1:length(A{1})-13) '_SMOOTHED_' num2str(smoothing_kernal) '.' suffix];
-            [~, matrix_filename, matrix_ext] = fileparts(char(A_smoothed));
-            dconn_paths_all_frames = [char(strcat(output_directory, matrix_filename, matrix_ext, '_all_frames_at_FD_', {motion_file}, '.', {suffix2}))];
-            if exist(dconn_paths_all_frames) == 0
-                disp('conn.nii does not exist for this subject yet.  Running code to create matrix.')
-                cifti_conn_matrix_for_wrapper(wb_command, A{1},series,motion_file, FD_threshold, TR, minutes_limit, smoothing_kernal,C{1}, D{1},bit8, remove_outliers, additional_mask, make_conn_conc, output_directory)
-                %rename output to average
-                %A_smoothed = [A{1}(1:length(A{1})-13) '_SMOOTHED_' num2str(smoothing_kernal) '.' suffix];
-                %dconn_paths_all_frames = [char(strcat(A_smoothed, '_all_frames_at_FD_', {motion_file}, '.', {suffix2}))];
-                if exist(dconn_paths_all_frames) == 0
-                    NOTE = ['Exiting...file ' dconn_paths_all_frames ' does not exist, likely because subject does not meet criteron or there was an error making their connectivity matrix']
-                    return
-                else
-                end
-            else
-                disp('conn.nii exist for this subject yet already.  Renaming to AVG for first subject.')
-                
-            end
-            [~, series_conc_name, series_conc_ext] = fileparts(char(dt_or_ptseries_conc_file));
-            output_conc = [output_directory series_conc_name series_conc_ext];
-            if keep_conn_matrices == 0
-                cmd = ['mv ' dconn_paths_all_frames ' ' output_conc '_AVG.' suffix2];
-            else
-                cmd = ['cp ' dconn_paths_all_frames ' ' output_conc '_AVG.' suffix2];
-            end
-            system(cmd);
-        end
-    else %use motion correction
-        if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
-            [~, matrix_filename, matrix_ext] = fileparts(char({A{1}}));
-            dconn_paths_all_frames_at_thresh_min_lim = [char(strcat(output_directory, matrix_filename, matrix_ext, '_', {num2str(minutes_limit)}, '_minutes_of_data_at_FD_', {num2str(FD_threshold)}, '.', {suffix2}))];
-            if exist(dconn_paths_all_frames_at_thresh_min_lim) == 0
-                disp('conn.nii does not exist for this subject yet.  Running code to create matrix.')
-                
-                cifti_conn_matrix_for_wrapper(wb_command, A{1},series,B{1}, FD_threshold, TR, minutes_limit, smoothing_kernal,left_surface_file, right_surface_file,bit8, remove_outliers, additional_mask, make_conn_conc, output_directory)
-                
-                % rename out put to average
-                %dconn_paths_all_frames_at_thresh_min_lim = [char(strcat({A{1}}, '_', {num2str(minutes_limit)}, '_minutes_of_data_at_FD_', {num2str(FD_threshold)}, '.', {suffix2}))];
-                if exist(dconn_paths_all_frames_at_thresh_min_lim) == 0
-                    NOTE = ['Exiting...file ' dconn_paths_all_frames_at_thresh_min_lim ' does not exist, likely because subject does not meet criteron or there was an error making their connectivity matrix']
-                    return
-                else
-                end
-            else
-                disp('conn.nii exist for this subject yet already.  Renaming to AVG for first subject.')
-                
-            end
-            [~, series_conc_name, series_conc_ext] = fileparts(char(dt_or_ptseries_conc_file));
-            output_conc = [output_directory series_conc_name series_conc_ext];
-            if keep_conn_matrices == 0
-                cmd = ['mv ' dconn_paths_all_frames_at_thresh_min_lim ' ' output_conc '_AVG.' suffix2];
-            else
-                cmd = ['cp ' dconn_paths_all_frames_at_thresh_min_lim ' ' output_conc '_AVG.' suffix2];
-            end
-            system(cmd);
-            
-        else
-            A_smoothed = [A{1}(1:length(A{1})-13) '_SMOOTHED_' num2str(smoothing_kernal) '.' suffix];
-            [~, matrix_filename, matrix_ext] = fileparts(char(A_smoothed));
-            dconn_paths_all_frames_at_thresh_min_lim = [char(strcat(output_directory, matrix_filename, matrix_ext, '_', {num2str(minutes_limit)}, '_minutes_of_data_at_FD_', {num2str(FD_threshold)}, '.', {suffix2}))];
-            if exist(dconn_paths_all_frames_at_thresh_min_lim) == 0
-                disp('conn.nii does not exist for this subject yet.  Running code to create matrix.')
-                cifti_conn_matrix_for_wrapper(wb_command, A{1},series,B{1}, FD_threshold, TR, minutes_limit, smoothing_kernal,C{1}, D{1},bit8, remove_outliers, additional_mask, make_conn_conc, output_directory)
-                % rename out put to average
-                %A_smoothed = [A{1}(1:length(A{1})-13) '_SMOOTHED_' num2str(smoothing_kernal) '.' suffix];
-                %dconn_paths_all_frames_at_thresh_min_lim = [char(strcat(A_smoothed, '_', {num2str(minutes_limit)}, '_minutes_of_data_at_FD_', {num2str(FD_threshold)}, '.', {suffix2}))];
-                if exist(dconn_paths_all_frames_at_thresh_min_lim) == 0
-                    NOTE = ['Exiting...file ' dconn_paths_all_frames_at_thresh_min_lim ' does not exist, likely because subject does not meet criteron or there was an error making their connectivity matrix']
-                    return
-                else
-                end
-                disp('conn.nii exist for this subject yet already.  Renaming to AVG for first subject.')
-            else
-            end
-            [~, series_conc_name, series_conc_ext] = fileparts(char(dt_or_ptseries_conc_file));
-            output_conc = [output_directory series_conc_name series_conc_ext];
-            if keep_conn_matrices == 0
-                cmd = ['mv ' dconn_paths_all_frames_at_thresh_min_lim ' ' output_conc '_AVG.' suffix2];
-            else
-                cmd = ['cp ' dconn_paths_all_frames_at_thresh_min_lim ' ' output_conc '_AVG.' suffix2];
-            end
-            system(cmd);
-        end
-    end
-end %minutes limit
 
-for i = 2:length(A) %build rest of template
-    if strcmp(minutes_limit,'none')==1 || strcmp(minutes_limit,'None')==1 || strcmp(minutes_limit,'NONE')==1
-        if strcmp(motion_file,'none')==1 || strcmp(motion_file,'None')==1 || strcmp(motion_file,'NONE')==1
-            if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
-                [~, matrix_filename, matrix_ext] = fileparts(char({A{i}}));
-                dconn_paths_none_minutes_at_thresh_min_lim = [char(strcat(output_directory, matrix_filename, matrix_ext, '_none_minutes_of_data_at_FD_', {motion_file}, '.', {suffix2}))];
-                if exist(dconn_paths_all_frames_at_thresh_min_lim) == 0
-                    disp('conn.nii does not exist for this subject yet.  Running code to create matrix.')
-                    cifti_conn_matrix_for_wrapper(wb_command, A{i},series,motion_file, FD_threshold, TR, minutes_limit, smoothing_kernal,left_surface_file, right_surface_file,bit8, remove_outliers, additional_mask, make_conn_conc, output_directory)
-                    
-                    % add image to average
-                    %dconn_paths_none_minutes_at_thresh_min_lim = [char(strcat({A{i}}, '_none_minutes_of_data_at_FD_', {motion_file}, '.', {suffix2}))];
-                    if exist(dconn_paths_none_minutes_at_thresh_min_lim) == 0
-                        NOTE = ['Exiting...file ' dconn_paths_all_frames ' does not exist, likely because subject does not meet criteron or there was an error making their connectivity matrix']
-                        return
-                    else
-                    end
-                else
-                    disp('conn.nii exist for this subject yet already.  Adding to the average dconn.')
-                end
-                [~, series_conc_name, series_conc_ext] = fileparts(char(dt_or_ptseries_conc_file));
-                output_conc = [output_directory series_conc_name series_conc_ext];
-                cmd = [wb_command ' -cifti-math  " M1 + M2 " ' output_conc '_AVG.' suffix2 ' -var M1 ' output_conc '_AVG.' suffix2 ' -var M2 '  dconn_paths_none_minutes_at_thresh_min_lim];
-                tic;
-                system(cmd);
-                toc;
-                clear cmd
-                if keep_conn_matrices == 0
-                    delete(dconn_paths_none_minutes_at_thresh_min_lim)
-                else
-                end
-                
-            else %smooth data
-                A_smoothed = [A{i}(1:length(A{i})-13) '_SMOOTHED_' num2str(smoothing_kernal) '.' suffix];
-                [~, matrix_filename, matrix_ext] = fileparts(char(A_smoothed));
-                dconn_paths_none_minutes_at_thresh_min_lim = [char(strcat(output_directory, matrix_filename, matrix_ext, '_none_minutes_of_data_at_FD_', {motion_file}, '.', {suffix2}))];
-                if exist(dconn_paths_none_minutes_at_thresh_min_lim) == 0
-                    disp('conn.nii does not exist for this subject yet.  Running code to create matrix.')
-                    cifti_conn_matrix_for_wrapper(wb_command, A{i},series,motion_file, FD_threshold, TR, minutes_limit, smoothing_kernal,C{i}, D{i},bit8, remove_outliers, additional_mask, make_conn_conc, output_directory)
-                    
-                    % add image to average
-                    %A_smoothed = [A{i}(1:length(A{i})-13) '_SMOOTHED_' num2str(smoothing_kernal) '.' suffix];
-                    %dconn_paths_none_minutes_at_thresh_min_lim = [char(strcat(A_smoothed, '_none_minutes_of_data_at_FD_', {motion_file}, '.', {suffix2}))];
-                    if exist(dconn_paths_none_minutes_at_thresh_min_lim) == 0
-                        NOTE = ['Exiting...file ' dconn_paths_none_minutes_at_thresh_min_lim ' does not exist, likely because subject does not meet criteron or there was an error making their connectivity matrix']
-                        return
-                    else
-                    end
-                else
-                    disp('conn.nii exist for this subject yet already.  Adding to the average dconn.')
-                end
-                
-                [~, series_conc_name, series_conc_ext] = fileparts(char(dt_or_ptseries_conc_file));
-                output_conc = [output_directory series_conc_name series_conc_ext];
-                cmd = [wb_command ' -cifti-math  " M1 + M2 " ' output_conc '_AVG.' suffix2 ' -var M1 ' output_conc '_AVG.' suffix2 ' -var M2 '  dconn_paths_none_minutes_at_thresh_min_lim];
-                tic;
-                system(cmd);
-                toc;
-                clear cmd
-                if keep_conn_matrices == 0
-                    delete(dconn_paths_none_minutes_at_thresh_min_lim)
-                else
-                end
-                
-            end
-            
-        else %use motion correction
-            if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
-                [~, matrix_filename, matrix_ext] = fileparts(char({A{i}}));
-                dconn_paths_none_minutes_at_thresh_min_lim = [char(strcat(output_directory, matrix_filename, matrix_ext, '_all_frames_at_FD_', {num2str(FD_threshold)}, '.', {suffix2}))];
-                if exist(dconn_paths_none_minutes_at_thresh_min_lim) == 0
-                    
-                    disp('conn.nii does not exist for this subject yet.  Running code to create matrix.')
-                    cifti_conn_matrix_for_wrapper(wb_command, A{i},series,B{i}, FD_threshold, TR, minutes_limit, smoothing_kernal,left_surface_file, right_surface_file,bit8, remove_outliers, additional_mask, make_conn_conc, output_directory)
-                    % add image to average
-                    %dconn_paths_none_minutes_at_thresh_min_lim = [char(strcat({A{i}}, '_none_minutes_of_data_at_FD_', {num2str(FD_threshold)}, '.', {suffix2}))];
-                    
-                    if exist(dconn_paths_none_minutes_at_thresh_min_lim) == 0
-                        NOTE = ['Exiting...file ' dconn_paths_none_minutes_at_thresh_min_lim ' does not exist, likely because subject does not meet criteron or there was an error making their connectivity matrix']
-                        return
-                    else
-                    end
-                else
-                    disp('conn.nii exist for this subject yet already.  Adding to the average dconn.')
-                end
-                [~, series_conc_name, series_conc_ext] = fileparts(char(dt_or_ptseries_conc_file));
-                output_conc = [output_directory series_conc_name series_conc_ext];
-                cmd = [wb_command ' -cifti-math  " M1 + M2 " ' output_conc '_AVG.' suffix2 ' -var M1 ' output_conc '_AVG.' suffix2 ' -var M2 '  dconn_paths_none_minutes_at_thresh_min_lim];
-                tic;
-                system(cmd);
-                toc;
-                clear cmd
-                if keep_conn_matrices == 0
-                    delete(dconn_paths_none_minutes_at_thresh_min_lim)
-                else
-                end
-                
-            else %smooth data
-                A_smoothed = [A{i}(1:length(A{i})-13) '_SMOOTHED_' num2str(smoothing_kernal) '.' suffix];
-                [~, matrix_filename, matrix_ext] = fileparts(char(A_smoothed));
-                dconn_paths_none_minutes_at_thresh_min_lim = [char(strcat(output_directory, matrix_filename, matrix_ext, '_all_frames_at_FD_', {num2str(FD_threshold)}, '.', {suffix2}))];
-                if exist(dconn_paths_none_minutes_at_thresh_min_lim) == 0
-                    disp('conn.nii does not exist for this subject yet.  Running code to create matrix.')
-                    cifti_conn_matrix_for_wrapper(wb_command, A{i},series,B{i}, FD_threshold, TR, minutes_limit, smoothing_kernal,C{i}, D{i},bit8, remove_outliers, additional_mask, make_conn_conc, output_directory)
-                    % add image to average
-                    %A_smoothed = [A{i}(1:length(A{i})-13) '_SMOOTHED_' num2str(smoothing_kernal) '.' suffix];
-                    %dconn_paths_none_minutes_at_thresh_min_lim = [char(strcat(A_smoothed, '_none_minutes_of_data_at_FD_', {num2str(FD_threshold)}, '.', {suffix2}))];
-                    if exist(dconn_paths_none_minutes_at_thresh_min_lim) == 0
-                        NOTE = ['Exiting...file ' dconn_paths_none_minutes_at_thresh_min_lim ' does not exist, likely because subject does not meet criteron or there was an error making their connectivity matrix']
-                        return
-                    else
-                    end
-                else
-                    disp('conn.nii exist for this subject yet already.  Adding to the average dconn.')
-                end
-                [~, series_conc_name, series_conc_ext] = fileparts(char(dt_or_ptseries_conc_file));
-                output_conc = [output_directory series_conc_name series_conc_ext];
-                cmd = [wb_command ' -cifti-math  " M1 + M2 " ' dt_or_ptseries_conc_file '_AVG.' suffix2 ' -var M1 ' dt_or_ptseries_conc_file '_AVG.' suffix2 ' -var M2 '  dconn_paths_none_minutes_at_thresh_min_lim];
-                tic;
-                system(cmd);
-                toc;
-                clear cmd
-                if keep_conn_matrices == 0
-                    delete(dconn_paths_none_minutes_at_thresh_min_lim)
-                else
-                end
-                
-            end
-        end
-    else %minutes limit is a number and not 'none'.
-        if strcmp(motion_file,'none')==1 || strcmp(motion_file,'None')==1
-            if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
-                [~, matrix_filename, matrix_ext] = fileparts(char({A{i}}));
-                dconn_paths_all_frames = [char(strcat(output_directory, matrix_filename, matrix_ext, '_all_frames_at_FD_', {motion_file}, '.', {suffix2}))];
-                if exist(dconn_paths_all_frames) == 0
-                    disp('conn.nii does not exist for this subject yet.  Running code to create matrix.')
-                    
-                    cifti_conn_matrix_for_wrapper(wb_command, A{i},series,motion_file, FD_threshold, TR, minutes_limit, smoothing_kernal,left_surface_file, right_surface_file,bit8, remove_outliers, additional_mask, make_conn_conc, output_directory)
-                    
-                    % add image to average
-                    %dconn_paths_all_frames = [char(strcat({A{i}}, '_all_frames_at_FD_', {motion_file}, '.', {suffix2}))];
-                    if exist(dconn_paths_all_frames) == 0
-                        NOTE = ['Exiting...file ' dconn_paths_all_frames ' does not exist, likely because subject does not meet criteron or there was an error making their connectivity matrix']
-                        return
-                    else
-                    end
-                else
-                    disp('conn.nii exist for this subject yet already.  Adding to the average dconn.')
-                end
-                
-                [~, series_conc_name, series_conc_ext] = fileparts(char(dt_or_ptseries_conc_file));
-                output_conc = [output_directory series_conc_name series_conc_ext];
-                cmd = [wb_command ' -cifti-math  " M1 + M2 " ' output_conc '_AVG.' suffix2 ' -var M1 ' output_conc '_AVG.' suffix2 ' -var M2 '  dconn_paths_all_frames];
-                tic;
-                system(cmd);
-                toc;
-                clear cmd
-                if keep_conn_matrices == 0
-                    delete(dconn_paths_all_frames)
-                else
-                end
-                
-                
-            else
-                A_smoothed = [A{i}(1:length(A{i})-13) '_SMOOTHED_' num2str(smoothing_kernal) '.' suffix];
-                [~, matrix_filename, matrix_ext] = fileparts(char(A_smoothed));
-                dconn_paths_all_frames = [char(strcat(output_directory, matrix_filename, matrix_ext, '_all_frames_at_FD_', {motion_file}, '.', {suffix2}))];
-                if exist(dconn_paths_all_frames) == 0
-                    disp('conn.nii does not exist for this subject yet.  Running code to create matrix.')
-                    
-                    cifti_conn_matrix_for_wrapper(wb_command, A{i},series,motion_file, FD_threshold, TR, minutes_limit, smoothing_kernal,C{i}, D{i},bit8, remove_outliers, additional_mask, make_conn_conc, output_directory)
-                    
-                    % add image to average
-                    %A_smoothed = [A{i}(1:length(A{i})-13) '_SMOOTHED_' num2str(smoothing_kernal) '.' suffix];
-                    %dconn_paths_all_frames = [char(strcat(A_smoothed, '_all_frames_at_FD_', {motion_file}, '.', {suffix2}))];
-                    if exist(dconn_paths_all_frames) == 0
-                        NOTE = ['Exiting...file ' dconn_paths_all_frames ' does not exist, likely because subject does not meet criteron or there was an error making their connectivity matrix']
-                        return
-                    else
-                    end
-                else
-                    disp('conn.nii exist for this subject yet already.  Adding to the average dconn.')   
-                end
-                [~, series_conc_name, series_conc_ext] = fileparts(char(dt_or_ptseries_conc_file));
-                output_conc = [output_directory series_conc_name series_conc_ext];
-                cmd = [wb_command ' -cifti-math  " M1 + M2 " ' output_conc '_AVG.' suffix2 ' -var M1 ' output_conc '_AVG.' suffix2 ' -var M2 '  dconn_paths_all_frames];
-                tic;
-                system(cmd);
-                toc;
-                clear cmd
-                if keep_conn_matrices == 0
-                    delete(dconn_paths_all_frames)
-                else
-                end
-                
-            end
-            
-        else %use motion correction
-            if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
-                [~, matrix_filename, matrix_ext] = fileparts(char({A{i}}));
-                dconn_paths_all_frames_at_thresh_min_lim = [char(strcat(output_directory, matrix_filename, matrix_ext, '_', {num2str(minutes_limit)}, '_minutes_of_data_at_FD_', {num2str(FD_threshold)}, '.', {suffix2}))];
-                if exist(dconn_paths_all_frames_at_thresh_min_lim) == 0
-                    disp('conn.nii does not exist for this subject yet.  Running code to create matrix.')
-                    
-                    cifti_conn_matrix_for_wrapper(wb_command, A{i},series,B{i}, FD_threshold, TR, minutes_limit, smoothing_kernal,left_surface_file, right_surface_file,bit8, remove_outliers, additional_mask, make_conn_conc, output_directory)
-                    
-                    % add image to average
-                    %dconn_paths_all_frames_at_thresh_min_lim = [char(strcat({A{i}}, '_', {num2str(minutes_limit)}, '_minutes_of_data_at_FD_', {num2str(FD_threshold)}, '.', {suffix2}))];
-                    if exist(dconn_paths_all_frames_at_thresh_min_lim) == 0
-                        NOTE = ['Exiting...file ' dconn_paths_all_frames_at_thresh_min_lim ' does not exist, likely because subject does not meet criteron or there was an error making their connectivity matrix']
-                        return
-                    else
-                    end
-                else
-                    disp('conn.nii exist for this subject yet already.  Adding to the average dconn.')
-                end
-                
-                [~, series_conc_name, series_conc_ext] = fileparts(char(dt_or_ptseries_conc_file));
-                output_conc = [output_directory series_conc_name series_conc_ext];
-                cmd = [wb_command ' -cifti-math  " M1 + M2 " ' output_conc '_AVG.' suffix2 ' -var M1 ' output_conc '_AVG.' suffix2 ' -var M2 '  dconn_paths_all_frames_at_thresh_min_lim];
-                tic;
-                system(cmd);
-                toc;
-                clear cmd
-                if keep_conn_matrices == 0
-                    delete(dconn_paths_all_frames_at_thresh_min_lim)
-                else
-                end
-                
-            else
-                if exist(dconn_paths_all_frames_at_thresh_min_lim) == 0
-                    A_smoothed = [A{i}(1:length(A{i})-13) '_SMOOTHED_' num2str(smoothing_kernal) '.' suffix];
-                    [~, matrix_filename, matrix_ext] = fileparts(char(A_smoothed));
-                    dconn_paths_all_frames_at_thresh_min_lim = [char(strcat(output_directory, matrix_filename, matrix_ext, '_', {num2str(minutes_limit)}, '_minutes_of_data_at_FD_', {num2str(FD_threshold)}, '.', {suffix2}))];
-                    cifti_conn_matrix_for_wrapper(wb_command, A{i},series,B{i}, FD_threshold, TR, minutes_limit, smoothing_kernal,C{i}, D{i},bit8, remove_outliers, additional_mask, make_conn_conc, output_directory)
-                    % add image to average
-                    %A_smoothed = [A{i}(1:length(A{i})-13) '_SMOOTHED_' num2str(smoothing_kernal) '.' suffix];
-                    %dconn_paths_all_frames_at_thresh_min_lim = [char(strcat(A_smoothed, '_', {num2str(minutes_limit)}, '_minutes_of_data_at_FD_', {num2str(FD_threshold)}, '.', {suffix2}))];
-                    if exist(dconn_paths_all_frames_at_thresh_min_lim) == 0
-                        NOTE = ['Exiting...file ' dconn_paths_all_frames_at_thresh_min_lim ' does not exist, likely because subject does not meet criteron or there was an error making their connectivity matrix']
-                        return
-                    else
-                    end
-                else
-                    disp('conn.nii exist for this subject yet already.  Adding to the average dconn.')
-                end
-                [~, series_conc_name, series_conc_ext] = fileparts(char(dt_or_ptseries_conc_file));
-                output_conc = [output_directory series_conc_name series_conc_ext];
-                cmd = [wb_command ' -cifti-math  " M1 + M2 " ' output_conc '_AVG.' suffix2 ' -var M1 ' output_conc '_AVG.' suffix2 ' -var M2 '  dconn_paths_all_frames_at_thresh_min_lim];
-                tic;
-                system(cmd);
-                toc;
-                clear cmd
-                if keep_conn_matrices == 0
-                    delete(dconn_paths_all_frames_at_thresh_min_lim)
-                else
-                end
-                
-            end
-        end
-    end
+%% Generate Average Matrix
+% This section and the next one were rewritten by Greg Conan on 2019-11-06 
+% to trim redundant code and modularize it into separate functions.
+% make first dconn.nii then rename
+already_added = containers.Map('KeyType', 'char', 'ValueType', 'logical');
+matrix_filename = get_matrix_filename(A, 1, smoothing_kernal, suffix);
+dconn_paths = get_dconn_paths(FD_threshold, minutes_limit, ...
+    matrix_filename, motion_file, output_directory, suffix2);
+motion_B = get_motion_file(motion_file, B, 1);
+output_conc = get_output_conc(dt_or_ptseries_conc_file, output_directory);
+dconn_paths = make_avg_matrix(A, motion_B, bit8, dconn_paths, ...
+    FD_threshold, 1, left, minutes_limit, output_directory, ...
+    remove_outliers, right, series, smoothing_kernal, TR, wb_command, ...
+    additional_mask, make_conn_conc, dtseries_conc, already_added);
+rename_avg_dconn(dconn_paths, output_conc, keep_conn_matrices, suffix2);
+already_added(dconn_paths) = 1;
+
+%% Build rest of template
+for i = 2:length(A)
+    matrix_filename = get_matrix_filename(A, i, smoothing_kernal, suffix);
+    dconn_paths = char(get_dconn_paths(FD_threshold, minutes_limit, ...
+        matrix_filename, motion_file, output_directory, suffix2));
+    motion_B = get_motion_file(motion_file, B, i);
+    dconn_paths = make_avg_matrix(A, motion_B, bit8, dconn_paths, ...
+        FD_threshold, i, left, minutes_limit, output_directory, ...
+        remove_outliers, right, series, smoothing_kernal, TR, wb_command, ...
+        additional_mask, make_conn_conc, dtseries_conc, already_added);
+    rename_avg_dconn(dconn_paths, output_conc, keep_conn_matrices, suffix2);
+    cifti_math_and_cleanup(dconn_paths, output_conc, ...
+        keep_conn_matrices, suffix2, wb_command);
+    already_added(dconn_paths) = 1;
 end
 
 %% Generate Mean by dividing by N
@@ -679,13 +225,129 @@ N = num2str(length(A)); % number of observations
 
 %mean = s1/N
 cmd = [wb_command ' -cifti-math " s1/' N '" ' output_conc '_AVG.' suffix2 ' -var s1 ' output_conc '_AVG.' suffix2];
-tic;
-system(cmd);
-toc;
-clear cmd
+execute_and_clear(cmd)
 
 %% Rename file to display chosen options
 cmd = ['mv ' output_conc '_AVG.' suffix2 ' ' template_file];
 system(cmd);
 disp('Done making average template');
+end
+
+
+function matrix_filename = get_matrix_filename(A, ix, smoothing, suffix)
+    % Get name of connectivity matrix file
+    if is_none(smoothing)
+        A_smoothed = A{ix};
+    else
+        A_smoothed = [A{ix}(1:length(A{ix})-13) '_SMOOTHED_' num2str(smoothing) '.' suffix];
+    end
+    [~, matrix_filename, matrix_ext] = fileparts(char(A_smoothed));
+    matrix_filename = [matrix_filename matrix_ext];
+end
+
+
+function dconn_paths = get_dconn_paths(fd, minutes, matrix, ...
+        motion_file, output_dir, ext)
+    % Get path to dconns
+    if is_none(motion_file)
+        dconn_paths = char(strcat(output_dir, matrix, '_all_frames_at_FD_', {motion_file}, '*.', {ext}));
+    else
+        if is_none(minutes)
+            dconn_paths = char(strcat(output_dir, matrix, '_all_frames_at_FD_', {num2str(fd)}, '*.', {ext}));
+        else
+            dconn_paths = char(strcat(output_dir, matrix, '_', {num2str(minutes)}, '_minutes_of_data_at_FD_', {num2str(fd)}, '*.', {ext}));
+        end
+    end
+end
+
+
+function motion_file = get_motion_file(motion_file, B, ix)
+    % Get the path to a motion file, or 'none' if there is no motion file
+    if ~is_none(motion_file)
+        motion_file = B{ix};
+    else
+    end
+end
+
+
+function output_conc = get_output_conc(input_conc, output_directory)
+    % Get filename of output .conc file listing paths to conn matrices
+    [~, series_conc_name, series_conc_ext] = fileparts(char(input_conc));
+    output_conc = [output_directory series_conc_name series_conc_ext]
+end
+
+
+function matrix_file = make_avg_matrix(A, B, bit8, dconn_paths, ...
+        fd, ix, left, minutes, output_dir, remove_outliers, right, ...
+        series, smoothing, TR, wb_command, add_mask, make_conn_conc, ...
+        dt, matrices_added)
+    % Create connectivity matrix unless one already exists
+    paths = dir(dconn_paths);
+    if isempty(paths)
+        disp('conn.nii does not exist for this subject yet.  Running code to create matrix.')
+        matrix_file = char(cifti_conn_matrix_for_wrapper(wb_command, A{ix}, series, B, fd, TR, minutes, smoothing, left, right, bit8, remove_outliers, add_mask, make_conn_conc, output_dir, dt));
+        % rename output to average
+        if exist(matrix_file) == 0
+            NOTE = ['Exiting...file ' dconn_paths ' does not exist, likely because subject does not meet criteron or there was an error making their connectivity matrix']
+            return
+        else
+        end
+    else
+        
+        % Handle 2 matrices which have the same name but were in different 
+        % folders separately
+        for m = 1:size(paths)
+            matrix_file = [paths(m).folder filesep paths(m).name];
+            if isKey(matrices_added, matrix_file)==1
+                clear matrix_file
+            else
+                break
+            end
+        end
+        if matrix_file
+            disp('conn.nii exist for this subject yet already.  Renaming to AVG for first subject.')
+        else
+            disp(['Error: Mismatch in the number of matrix files: ' matrix_file])
+            return
+        end
+    end
+end
+
+
+function rename_avg_dconn(paths, output_conc, keep_conn_matrices, suffix2)
+    % Add the word "AVG" to average matrix to avoid overwriting the originals
+    if keep_conn_matrices == 0
+        cmd = ['mv ' paths ' ' output_conc '_AVG.' suffix2];
+    else
+        cmd = ['cp ' paths ' ' output_conc '_AVG.' suffix2];
+    end
+    system(cmd);
+end
+
+
+function cifti_math_and_cleanup(dconn_paths, output_conc, keep_conn_matrices, suffix2, wb_command)
+    % Run cifti math on average matrices, and then delete dconn files unless
+    % keep_conn_matrices is true
+    cmd = [wb_command ' -cifti-math  " M1 + M2 " ' output_conc '_AVG.' suffix2 ' -var M1 ' output_conc '_AVG.' suffix2 ' -var M2 '  dconn_paths];
+    execute_and_clear(cmd);
+    if keep_conn_matrices == 0
+        delete(dconn_paths);
+    else
+    end
+end
+
+
+function execute_and_clear(cmd)
+    % Given a string that can be executed on the command line, execute it
+    % and then clear the variable holding that string.
+    tic;
+    system(cmd);
+    toc;
+    clear cmd
+end
+
+
+function result = is_none(param)
+    % Return 1 if param is a string saying none; otherwise return 0
+    result = strcmpi(param,'none');
 end

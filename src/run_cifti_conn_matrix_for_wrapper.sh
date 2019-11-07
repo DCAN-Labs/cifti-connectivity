@@ -10,6 +10,46 @@ if [ ! -d $TMPDIR/$USER ]; then
     mkdir $TMPDIR/$USER
 fi
 export MCR_CACHE_ROOT=$TMPDIR/$USER
+if [ ! -d $TMPDIR/$USER ]; then
+    mkdir $TMPDIR/$USER
+fi
+export MCR_CACHE_ROOT=$TMPDIR/$USER
+if [ ! -d $TMPDIR/$USER ]; then
+    mkdir $TMPDIR/$USER
+fi
+export MCR_CACHE_ROOT=$TMPDIR/$USER
+if [ ! -d $TMPDIR/$USER ]; then
+    mkdir $TMPDIR/$USER
+fi
+export MCR_CACHE_ROOT=$TMPDIR/$USER
+if [ ! -d $TMPDIR/$USER ]; then
+    mkdir $TMPDIR/$USER
+fi
+export MCR_CACHE_ROOT=$TMPDIR/$USER
+if [ ! -d $TMPDIR/$USER ]; then
+    mkdir $TMPDIR/$USER
+fi
+export MCR_CACHE_ROOT=$TMPDIR/$USER
+if [ ! -d $TMPDIR/$USER ]; then
+    mkdir $TMPDIR/$USER
+fi
+export MCR_CACHE_ROOT=$TMPDIR/$USER
+if [ ! -d $TMPDIR/$USER ]; then
+    mkdir $TMPDIR/$USER
+fi
+export MCR_CACHE_ROOT=$TMPDIR/$USER
+if [ ! -d $TMPDIR/$USER ]; then
+    mkdir $TMPDIR/$USER
+fi
+export MCR_CACHE_ROOT=$TMPDIR/$USER
+if [ ! -d $TMPDIR/$USER ]; then
+    mkdir $TMPDIR/$USER
+fi
+export MCR_CACHE_ROOT=$TMPDIR/$USER
+if [ ! -d $TMPDIR/$USER ]; then
+    mkdir $TMPDIR/$USER
+fi
+export MCR_CACHE_ROOT=$TMPDIR/$USER
 echo "------------------------------------------"
 if [ "x$1" = "x" ]; then
   echo Usage:

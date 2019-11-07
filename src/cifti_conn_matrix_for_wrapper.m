@@ -104,13 +104,6 @@ if (strcmp(smoothing_kernal,'none')~=1) && (strcmp(series,'ptseries')==1)
 else
 end
 
-if exist('make_dconn_conc','var') == 1
-    if isnumeric(make_dconn_conc)==1
-    else
-        make_dconn_conc = str2num(make_dconn_conc);
-    end
-end
-
 %%
 %HARDCODE WARNING
 %wb_command =
@@ -207,7 +200,6 @@ if strcmp(motion_file,'none')==1 || strcmp(motion_file,'None')==1 % run this if 
                 clear smoothedfile_name
                 Column = 'COLUMN';
                 cmd = [wb_command ' -cifti-smoothing ' char(input_directory) char(orig_cifti_filename) ' ' num2str(smoothing_kernal) ' ' num2str(smoothing_kernal) ' ' Column ' ' char(output_directory) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernal) '.' suffix  ' -left-surface ' C{i} '  -right-surface ' D{i}];
-                disp('207')
                 disp(cmd)
                 system(cmd);
                 clear cmd
@@ -368,7 +360,6 @@ else %use motion cenosoring
                 if exist(A_smoothed{i}) ==0 %check to see if smoothed file exists yet.
                     Column = 'COLUMN';
                     cmd = [wb_command ' -cifti-smoothing ' char(input_directory) char(orig_cifti_filename) ' ' num2str(smoothing_kernal) ' ' num2str(smoothing_kernal) ' ' Column ' ' char(output_directory) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernal)  '_' char(folders(end-1)) '.' suffix  ' -left-surface ' C{i} '  -right-surface ' D{i}]
-                    disp('320')
                     disp(cmd)
                     system(cmd);
                     clear cmd
@@ -422,7 +413,6 @@ else %use motion cenosoring
                     if exist(A_smoothed{i}) ==0 %check to see if smoothed file exists yet.
                         Column = 'COLUMN';
                         cmd = [wb_command ' -cifti-smoothing ' char(input_directory) char(orig_cifti_filename) ' ' num2str(smoothing_kernal) ' ' num2str(smoothing_kernal) ' ' Column ' ' char(output_directory) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernal)  '_' char(folders(end-1)) '.' suffix  ' -left-surface ' C{i} '  -right-surface ' D{i}];
-                        disp('373')
                         disp(cmd)
                         system(cmd);
                         clear cmd
@@ -476,7 +466,6 @@ else %use motion cenosoring
                     if exist(A_smoothed{i}) == 0
                         Column = 'COLUMN';
                         cmd = [wb_command ' -cifti-smoothing ' char(input_directory) char(orig_cifti_filename) ' ' num2str(smoothing_kernal) ' ' num2str(smoothing_kernal) ' ' Column ' ' char(output_directory) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernal)  '_' char(folders(end-1)) '.' suffix  ' -left-surface ' C{i} '  -right-surface ' D{i}];
-                        disp('426')
                         disp(cmd)
                         system(cmd);
                         clear cmd
@@ -518,18 +507,12 @@ else %use motion cenosoring
     end
 end
 
-if make_dconn_conc == 1
+if strcmpi(make_dconn_conc,'none')==0
     disp('Done making (p or d)conn.nii for subjects.  Making output .concs')
     
     %% GENERATE FINAL CONC text file here to use in other code (e.g. cifti_conn_pairwise_corr.m)
     
-    if strcmp('conc',conc) == 1
-        concname = [dt_or_ptseries_conc_file '_' suffix3 '_of_' series]; %prefix name
-    else
-        concname = strsplit(dt_or_ptseries_conc_file, '/');
-        concname = char(concname(end));
-        concname = [concname '_' suffix3 '_of_' series]; %prefix name
-    end
+    concname = make_dconn_conc;
     
     %different conc files that potentially could be produced
     subjectswithoutenoughdata = [];
@@ -538,7 +521,7 @@ if make_dconn_conc == 1
     dconn_paths_all_frames_at_thresh_min_lim =[];
     
     %% Generate conc files
-    if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
+    if strcmpi(smoothing_kernal,'none')==1
         for i = 1:length(A)
             folders = split(A{i},'/');
             orig_cifti_filename = char(folders(end));
@@ -645,7 +628,7 @@ if make_dconn_conc == 1
         
     end
     
-    if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
+    if strcmpi(smoothing_kernal,'none')==1
         for i = 1:length(A)
             folders = split(A{i},'/');
             orig_cifti_filename = char(folders(end));
@@ -654,13 +637,8 @@ if make_dconn_conc == 1
             if no_output
                 output_directory =char(input_directory);
             end
-            if strcmp(motion_file,'none')==1 || strcmp(motion_file,'None')==1
-                fileID = fopen([concname '_all_frames_at_FD_' motion_file '.conc'],'w');
-                [nrows,ncols] = size(dconn_paths_all_frames);
-                for row = 1:nrows
-                    fprintf(fileID,'%s\n' ,dconn_paths_all_frames{row,:});
-                end
-                fclose(fileID);
+            if strcmpi(motion_file,'none')==1
+                make_conn_conc(concname, dconn_paths_all_frames);
             else
                 load(B{i})
                 allFD = zeros(1,length(motion_data));
@@ -700,36 +678,15 @@ if make_dconn_conc == 1
                 good_frames_idx = find(FDvec == 1);
                 good_minutes = (length(good_frames_idx)*TR)/60;
                 
-                if strcmp(minutes_limit,'none')==1 || strcmp(minutes_limit,'None')==1 || strcmp(minutes_limit,'NONE')==1
-                    fileID = fopen([concname '_all_frames_at_FD_' num2str(FD_threshold) '.conc'],'w');
-                    [nrows,ncols] = size(dconn_paths_all_frames_at_thresh);
-                    for row = 1:nrows
-                        fprintf(fileID,'%s\n' ,dconn_paths_all_frames_at_thresh{row,:});
-                    end
-                    
+                if strcmpi(minutes_limit,'none')==1
+                    make_conn_conc(concname, dconn_paths_all_frames_at_thresh);
                 else
-                    
                     if good_minutes < 0.5
-                        fileID = fopen([concname '_lessthan30sec_' num2str(FD_threshold) '.conc'],'w');
-                        [nrows,ncols] = size(subjectswithoutenoughdata);
-                        for row = 1:nrows
-                            fprintf(fileID,'%s\n' ,subjectswithoutenoughdata{row,:});
-                        end
-                        fclose(fileID);
+                        make_conn_conc(concname, subjectswithoutenoughdata);
                     elseif minutes_limit > good_minutes
-                        fileID = fopen([concname '_all_frames_at_FD_' num2str(FD_threshold) '.conc'],'w');
-                        [nrows,ncols] = size(dconn_paths_all_frames_at_thresh);
-                        for row = 1:nrows
-                            fprintf(fileID,'%s\n' ,dconn_paths_all_frames_at_thresh{row,:});
-                        end
-                        fclose(fileID);
+                        make_conn_conc(concname, dconn_paths_all_frames_at_thresh);
                     elseif minutes_limit <= good_minutes
-                        fileID = fopen([concname '_' num2str(minutes_limit) '_minutes_of_data_at_FD_' num2str(FD_threshold) '.conc'],'w');
-                        [nrows,ncols] = size(dconn_paths_all_frames_at_thresh_min_lim);
-                        for row = 1:nrows
-                            fprintf(fileID,'%s\n' ,dconn_paths_all_frames_at_thresh_min_lim{row,:});
-                        end
-                        fclose(fileID);
+                        make_conn_conc(concname, dconn_paths_all_frames_at_thresh_min_lim);
                     end
                 end
             end
@@ -743,13 +700,8 @@ if make_dconn_conc == 1
             if no_output
                 output_directory =char(input_directory);
             end
-            if strcmp(motion_file,'none')==1 || strcmp(motion_file,'None')==1
-                fileID = fopen([concname '_all_frames_at_FD_' motion_file '.conc'],'w');
-                [nrows,ncols] = size(dconn_paths_all_frames);
-                for row = 1:nrows
-                    fprintf(fileID,'%s\n' ,dconn_paths_all_frames{row,:});
-                end
-                fclose(fileID);
+            if strcmpi(motion_file,'none')==1
+                make_conn_conc(concname, dconn_paths_all_frames);
             else
                 load(B{i})
                 allFD = zeros(1,length(motion_data));
@@ -772,37 +724,18 @@ if make_dconn_conc == 1
                 Outlier_idx=find(Outlier_file==1); %find outlier indices
                 FDvec(FDvec_keep_idx(Outlier_idx))=0; %set outliers to zero within FDvec
                 clear STDEV_file FDvec_keep_idx Outlier_file Outlier_idx
-                if strcmp(minutes_limit,'none')==1 || strcmp(minutes_limit,'None')==1 || strcmp(minutes_limit,'NONE')==1
-                    fileID = fopen([concname '_SMOOTHED_' num2str(smoothing_kernal) '_all_frames_at_FD_' num2str(FD_threshold) '.conc'],'w');
-                    [nrows,ncols] = size(dconn_paths_all_frames_at_thresh);
-                    for row = 1:nrows
-                        fprintf(fileID,'%s\n' ,dconn_paths_all_frames_at_thresh{row,:});
-                    end
+                if strcmpi(minutes_limit,'none')==1
+                    make_conn_conc(concname, dconn_paths_all_frames_at_thresh);
                 else
                     good_frames_idx = find(FDvec == 1);
                     good_minutes = (length(good_frames_idx)*TR)/60;
                     
                     if good_minutes < 0.5
-                        fileID = fopen([concname '_SMOOTHED_' num2str(smoothing_kernal) '_lessthan30sec_' num2str(FD_threshold) '.conc'],'w');
-                        [nrows,ncols] = size(subjectswithoutenoughdata);
-                        for row = 1:nrows
-                            fprintf(fileID,'%s\n' ,subjectswithoutenoughdata{row,:});
-                        end
-                        fclose(fileID);
+                        make_conn_conc(concname, subjectswithoutenoughdata);
                     elseif minutes_limit > good_minutes
-                        fileID = fopen([concname '_SMOOTHED_' num2str(smoothing_kernal) '_all_frames_at_FD_' num2str(FD_threshold) '.conc'],'w');
-                        [nrows,ncols] = size(dconn_paths_all_frames_at_thresh);
-                        for row = 1:nrows
-                            fprintf(fileID,'%s\n' ,dconn_paths_all_frames_at_thresh{row,:});
-                        end
-                        fclose(fileID);
+                        make_conn_conc(concname, dconn_paths_all_frames_at_thresh);
                     elseif minutes_limit <= good_minutes
-                        fileID = fopen([concname '_SMOOTHED_' num2str(smoothing_kernal) '_' num2str(minutes_limit) '_minutes_of_data_at_FD_' num2str(FD_threshold) '.conc'],'w');
-                        [nrows,ncols] = size(dconn_paths_all_frames_at_thresh_min_lim);
-                        for row = 1:nrows
-                            fprintf(fileID,'%s\n' ,dconn_paths_all_frames_at_thresh_min_lim{row,:});
-                        end
-                        fclose(fileID);
+                        make_conn_conc(concname, dconn_paths_all_frames_at_thresh_min_lim);
                     end
                 end
             end
@@ -815,7 +748,6 @@ end
 
 
 function not_exist = matrix_not_already_exist(to_make)
-    
     not_exist = (exist(to_make) == 0);
 end
 
@@ -842,3 +774,13 @@ function [paths, conc] = get_paths_from_conc(conc_file)
     disp('All series files exist continuing ...')
 end
 
+
+function make_conn_conc(concname, dconn_paths)
+    fileID = fopen(concname,'w');
+    [nrows,ncols] = size(dconn_paths);
+    for row = 1:nrows
+        dconn_paths{row,:}
+        fprintf(fileID,'%s\n' ,dconn_paths{row,:});
+    end
+    fclose(fileID);
+end

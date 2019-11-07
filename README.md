@@ -8,7 +8,7 @@ Clone this repository and save it somewhere on the Linux system that you want to
 
 ## Dependencies
 - [Python v3.5.2](https://www.python.org/downloads/release/python-352) or greater
-- [MathWorks MATLAB Runtime Environment (MRE) version 9.1 (2016b)](https://www.mathworks.com/products/compiler/matlab-runtime.html) or greater
+- [MathWorks MATLAB Runtime Environment (MRE) version 9.1 (2016b)](https://www.mathworks.com/products/compiler/matlab-runtime.html)
 - [Washington University Workbench Command (wb_command)](https://github.com/Washington-University/workbench)
   
 ## Purpose
@@ -50,7 +50,7 @@ If these arguments are excluded, then by default the wrapper will use hardcoded 
 
 These arguments can be included without a value.
 
-`--make_conn_conc` will make a list of connectivity matrices created by this wrapper. By default, the wrapper will not make a list. Running `cifti_conn_pairwise_corr` will only work if a list of connectivity matrices already exists. This wrapper can create a list by running `cifti_conn_matrix` or `cifti_conn_template` with this `--make_conn_conc` flag included.
+`--matrices_conc` will make a list of connectivity matrices created by this wrapper. By default, the wrapper will not make a list. Running `cifti_conn_pairwise_corr` will only work if a list of connectivity matrices already exists. This wrapper can create a list by running `cifti_conn_matrix` or `cifti_conn_template` with this `--matrices_conc` flag included. If the flag is included with an argument, then the wrapper will save the `.conc` file to that path. Otherwise, the wrapper will automatically generate the `.conc` file name and save a file with that name in the `--output` folder. 
 
 `--keep_conn_matrices` will make the wrapper keep the `dconn/pconn` files after creating them. Otherwise, it will delete the `d/pconns` after adding them to the average `d/pconn`. The `d/pconn` files are needed to run `cifti_conn_pairwise_corr`, which compares the `d/pconn` files to the average file created by `cifti_conn_template`. So if this flag is excluded and `cifti_conn_pairwise_corr` is run, then the `d/pconn` files will be kept until the `pairwise_corr` script finishes.
 
@@ -112,9 +112,9 @@ The `time_series` argument passed to `cifti_conn_matrix` is either 'dtseries' or
 This code builds a template d/pconn from a list of d/ptseries.  If the d/pconn exists, if will load it instead of making it anew (calls `cifti_conn_matrix`). It takes the same arguments from the wrapper as `cifti_conn_matrix`, as well as `keep_conn_matrices`.
 
 ### cifti_conn_pairwise_corr
-This compares the connectivity matrix of each individual to the template (see cifti_conn_template), and provides a vector where each element is the correlation of connectivity to that greyorindate/parcellation. It takes these arguments from the wrapper: `template`, `p_or_dconn`, `conn_matrices`, and `keep_conn_matrices`.
+This compares the connectivity matrix of each individual to the template (see cifti_conn_template), and provides a vector where each element is the correlation of connectivity to that greyorindate/parcellation. It takes these arguments from the wrapper: `template`, `p_or_dconn`, `matrices_conc`, and `keep_conn_matrices`.
 
-The `p_or_dconn` argument passed to `cifti_conn_pairwise_corr` is simply the `time_series` argument reformatted: `dtseries` becomes `dconn`, and `ptseries` becomes `pconn`. The `conn_matrices` argument is a path to a `.conc` list of connectivity matrices to use in the analysis. The wrapper builds the name of the `conn_matrices` file by combining the `series_file`, `time_series`, `minutes`, and `fd_threshold` arguments.
+The `p_or_dconn` argument passed to `cifti_conn_pairwise_corr` is simply the `time_series` argument reformatted: `dtseries` becomes `dconn`, and `ptseries` becomes `pconn`. The `matrices_conc` argument is a path to a `.conc` list of connectivity matrices to use in the analysis. By default, the wrapper builds the name of the `matrices_conc` file by combining the `series_file`, `time_series`, `minutes`, and `fd_threshold` arguments.
 
 ## Known Issues
   - The code added a pause function each time it computes outliers.  The pause function was added because sometimes the outlier file was read before it was done being written.

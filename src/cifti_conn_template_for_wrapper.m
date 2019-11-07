@@ -23,7 +23,7 @@ function cifti_conn_template_for_wrapper(wb_command, dt_or_ptseries_conc_file, s
 % keep_conn_matrices = set to 1 to keep dconn.nii, set to 0 to delete them.
 % removeoutliers. 0 or 1.  If 1, outliers are removed from the BOLD signal.  If 0 frames will only be censored by the FD threshold.
 % Addional mask on top of the FD threshold.  This mask can be used to extract rests between blocks of task. This vector of 1s and zeros should be the same length as your dtseries.
-% make_dconn_conc - make a list of connectivity matrices that were created by this script.
+% make_dconn_conc - make a list of connectivity matrices that were created by this script. If this is 'none', no list will be created; otherwise it should be a valid path.
 % template_file = File path and name of template file to be created.
 %  NOTE: this will delete dconns that have been previously made if the name
 %  matches the expected output.
@@ -126,6 +126,7 @@ end
 %% Load Motion vector paths
 if is_none(motion_file)
     'No motion files, will use all frames to generate matrices'
+    B = {motion_file};
 else
     if strcmp('conc',conc) == 1
         B = importdata(motion_file);

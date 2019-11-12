@@ -1,6 +1,5 @@
 function outfile = cifti_conn_matrix_for_wrapper(wb_command, dt_or_ptseries_conc_file,series,motion_file, FD_threshold, TR, minutes_limit, smoothing_kernel,left_surface_file, right_surface_file, bit8,remove_outliers, additional_mask, make_dconn_conc, output_directory, dtseries_conc)
-
-% This should be the same as cifti_conn_matrix_exaversion, except that it
+% This script is a modularized version of cifti_conn_matrix_exaversion, except that it
 % accepts and uses these parameters: remove_outliers, additional_mask, make_dconn_conc
 
 %dt_or_ptseries_conc_file = dense timeseries or parcellated timeseries conc file (i.e. text file with paths to each file being examined
@@ -33,38 +32,38 @@ function outfile = cifti_conn_matrix_for_wrapper(wb_command, dt_or_ptseries_conc
 
 orig_conc_folders = split(dt_or_ptseries_conc_file,'/');
 orig_conc_file = char(orig_conc_folders(end));
-orig_conc_folder_input = join(orig_conc_folders(1:end-1),'/');
-orig_conc_folder_input = [char(orig_conc_folder_input) '/'];
 
 no_output = 0;
 if exist('output_directory','var') == 0
     output_directory =[];
-    no_output = 1;    disp('All series files exist continuing ...')
+    no_output = 1;
+    disp('All series files exist continuing ...')
 
 else
     output_directory = char(output_directory);
 end
+
 if isempty(output_directory)
     no_output = 1;
 end
 %convert number variables to cnumbers (only within compiled code);
 %Check to make sure that FD_threshold is a number
-if isnumeric(FD_threshold)==1
+if isnumeric(FD_threshold)
 else
     FD_threshold = str2num(FD_threshold);
 end
 
 %Check to make sure that TR is a number
-if isnumeric(TR)==1
+if isnumeric(TR)
 else
     TR = str2num(TR);
 end
 
 %Check to make sure that  minutes limit is a number (unless you've set it
 %to 'none')
-if strcmpi(minutes_limit,'none')==1
+if strcmpi(minutes_limit,'none')
     minutes_limit= 'none';
-elseif isnumeric(minutes_limit)==1
+elseif isnumeric(minutes_limit)
     disp('minutes limit is passed in as numeric.')
 else
     disp('minutes limit is passed in as string. converting to numeric')
@@ -72,13 +71,13 @@ else
 end
 
 %Check to make sure that bit8 is a number
-if isnumeric(bit8)==1
+if isnumeric(bit8)
 else
     bit8 = str2num(bit8);
 end
 
-if exist('remove_outliers','var') == 1
-    if isnumeric(remove_outliers)==1
+if exist('remove_outliers','var')
+    if isnumeric(remove_outliers)
     else
         remove_outliers = str2num(remove_outliers);
     end
@@ -97,8 +96,7 @@ else
     smoothing_kernel = str2num(smoothing_kernel);
 end
 
-
-if (strcmp(smoothing_kernel,'none')~=1) && (strcmp(series,'ptseries')==1)
+if (strcmpi(smoothing_kernel,'none')~=1) && (strcmpi(series,'ptseries')==1)
     disp('Check your settings. Smoothing not allowed on ptseries.');
     return
 else
@@ -119,15 +117,14 @@ end
 
 %% set file extensions
 disp(series)
-if strcmp(series, 'ptseries')
+if strcmpi(series, 'ptseries')
     suffix = 'ptseries.nii';
     suffix2 = 'pconn.nii';
-    suffix3 = 'pconn';
     output_precision = ' '; %set default precision. Connectivity file sizes are NOT reduced for ptseries
-elseif strcmp(series, 'dtseries')
+elseif strcmpi(series, 'dtseries')
     suffix = 'dtseries.nii';
     suffix2 = 'dconn.nii';
-    suffix3 = 'dconn';
+    
     if exist('bit8','var') == 1
         if isnumeric(bit8)==1
         else
@@ -148,12 +145,12 @@ end
 
 disp(smoothing_kernel)
 %% prealocate memory if you want to do smoothing
-if strcmpi(smoothing_kernel,'none')==1
+if strcmpi(smoothing_kernel,'none')
 else
     A_smoothed = num2cell(zeros(size(A)));
     % moved to line 178 (use motion censoring) Anders Perrone - 20171107
     %stdev_temp_filename=[char(dt_or_ptseries_conc_file) '_temp.txt']; %rename temp file so that it can't be overwritten when the script is run in parallel.
-    if strcmp('conc',conc) == 1
+    if strcmpi('conc',conc) == 1
         C = importdata(left_surface_file); %check to make sure surface files exist
         D = importdata(right_surface_file); %check to make sure surface files exist
     else
@@ -181,61 +178,25 @@ end
 
 %% Generate Motion Vectors and correlation matrix
 
-if strcmpi(motion_file,'none')==1 % run this if no motion censoring
+if strcmpi(motion_file,'none') % run this if no motion censoring
     'No motion files, will use all frames to generate matrices'
     for i = 1:length(A)
-        folders = split(A{i},'/');
-        orig_cifti_filename = char(folders(end));
-        folder_input = join(folders(1:end-1),'/');
-        input_directory = [char(folder_input) '/'];
+        [orig_cifti_filename, input_directory, ...
+            folders] = get_folder_params(A{i}, filesep);
         if no_output
             output_directory =char(input_directory);
         end
-        if strcmpi(smoothing_kernel,'none')==1
-            outfile = [char(output_directory) char(orig_cifti_filename) '_all_frames_at_FD_' motion_file '_' char(folders(end-1)) '.' suffix2];
-        else
-            A_smoothed{i} = [char(output_directory) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernel) '.' suffix];
-            outfile = [A_smoothed{i} '_all_frames_at_FD_' motion_file '_' char(folders(end-1)) '.' suffix2];
-            if exist(A_smoothed{i}) == 0 %check to see if smoothing file does not exist
-                clear smoothedfile_name
-                Column = 'COLUMN';
-                cmd = [wb_command ' -cifti-smoothing ' char(input_directory) char(orig_cifti_filename) ' ' num2str(smoothing_kernel) ' ' num2str(smoothing_kernel) ' ' Column ' ' char(output_directory) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernel) '.' suffix  ' -left-surface ' C{i} '  -right-surface ' D{i}];
-                disp(cmd)
-                system(cmd);
-                clear cmd
-            else %smoothed series already exists
-                disp('Smoothed series already created for this subject')
-            end
-        end
-        if matrix_not_already_exist(outfile) % make sure the matrix doesn't already exist
-            %%%%
-            if strcmpi(smoothing_kernel,'none')==1
-                
-                cmd = [wb_command output_precision ' -cifti-correlation ' char(input_directory) char(orig_cifti_filename) ' ' char(output_directory) char(orig_cifti_filename) '_all_frames_at_FD_' motion_file  '_' char(folders(end-1)) '.' suffix2  ' -fisher-z'];
-                %cmd = [wb_command ' -cifti-correlation ' A{i} ' ' A{i} '_all_frames_at_FD_' motion_file '.' suffix2  ' -fisher-z'];
-                tic;
-                disp('Running wb_command cifti-correlation.  This may take a few minutes.')
-                system(cmd);
-                toc;
-                clear cmd
-            else
-                cmd = [wb_command output_precision ' -cifti-correlation ' A_smoothed{i} ' ' A_smoothed{i} '_all_frames_at_FD_' motion_file  '_' char(folders(end-1)) '.' suffix2  ' -fisher-z'];
-                %cmd = [wb_command ' -cifti-correlation ' A{i} ' ' A{i} '_all_frames_at_FD_' motion_file '.' suffix2  ' -fisher-z'];
-                tic;
-                disp('Running wb_command cifti-correlation.  This may take a few minutes.')
-                system(cmd);
-                toc;
-                clear cmd
-            end
-        else
-            if strcmpi(smoothing_kernel,'none')==1
-                subject_conn_exists = [char(input_directory) char(orig_cifti_filename) '_all_frames_at_FD_' motion_file  '_' char(folders(end-1)) '.' suffix2 ' already exists']
-            else
-                subject_conn_exists = [A_smoothed{i} '_all_frames_at_FD_' motion_file  '_' char(folders(end-1)) '.' suffix2 ' already exists']
-            end
-        end
+        
+        % Run minutes limit calculation
+        origin_dir_ext = char(folders(end-1));
+        min_file_end = ['_cifti_censor_FD_vector_All_Good_Frames_' origin_dir_ext '.txt'];
+        [A_smoothed{i}, outfile] = minutes_limit_calculation(...
+            FD_threshold, input_directory, C{i}, '_all_frames_at_', ...
+            min_file_end, motion_file, 'none', origin_dir_ext, ...
+            output_directory, output_precision, orig_cifti_filename, ...
+            D{i}, smoothing_kernel, suffix, suffix2, wb_command);
     end
-else %use motion cenosoring
+else %use motion censoring
     stdev_temp_filename=[output_directory orig_conc_file '_temp.txt']; %rename temp file so that it can't be overwritten when the script is run in parallel.
     if strcmp('conc',conc) == 1
         B = importdata(motion_file);
@@ -259,63 +220,47 @@ else %use motion cenosoring
     end
     disp('All motion files exist continuing ...')
     
-    
-    
     %% Generate motion vector for subject and generate correlation matrix
     for i = 1:length(B)
             motion_exten = strsplit(B{i}, '.');
             motion_exten = char(motion_exten(end));
             
             if strcmp('mat',motion_exten) == 1
-            other_motion_mask =0; 
+                other_motion_mask =0; 
             else
-             other_motion_mask =1;  
+                other_motion_mask =1;  
             end
         if other_motion_mask ==1 %use an external mask rather than calculating the mask here (e.g. .txt file.
             FDvec=B{i};
-            if exist('remove_outliers','var') == 0 || remove_outliers == 1 %remove outliers from external mask
+            if exist('remove_outliers','var') == 0 %remove outliers from external mask
                 disp('Removal outliers not specified.  It will be performed by default.')
-                %% additional frame removal based on Outliers command: isoutlier with "median" method.
-                cmd = [wb_command ' -cifti-stats ' dtseries_E{i} ' -reduce STDEV > ' stdev_temp_filename];      % Changed A{i} to new dtseries .conc file parameter
-                system(cmd);
-                clear cmd
-                disp('waiting 10 seconds for writing of temp file before reading. Line:258 (not an error)')
-                pause(10);  % to give time to write temp file, failed to load with pause(1)
-                STDEV_file=load(stdev_temp_filename); % load stdev of .nii file.
-                FDvec_keep_idx = find(FDvec==1); %find the kept frames from the FD mask
-                Outlier_file=isthisanoutlier(STDEV_file(FDvec_keep_idx),'median'); %find outlier
-                Outlier_idx=find(Outlier_file==1); %find outlier indices
-                FDvec(FDvec_keep_idx(Outlier_idx))=0; %set outliers to zero within FDvec
-                clear STDEV_file FDvec_keep_idx Outlier_file Outlier_idx
+                FDvec = remove_frames_from_FDvec(dtseries_E{i}, ...
+                    FDvec, stdev_temp_filename, wb_command, 30);  
                 
-            else exist('remove_outliers','var') == 1 && remove_outliers == 0;
+            elseif remove_outliers == 1 %remove outliers from external mask
+                disp('Removing outliers using .dtseries file...')
+                FDvec = remove_frames_from_FDvec(dtseries_E{i}, ...
+                    FDvec, stdev_temp_filename, wb_command, 30);    
+            else % exist('remove_outliers','var') == 1 && remove_outliers == 0;
+                
                 disp('Motion censoring performed on FD alone. Frames with outliers in BOLD std dev not removed');
             end
         else
             %Use power 2014 motion
-            load(B{i})
-            folders = split(A{i},'/');
-            orig_cifti_filename = char(folders(end));
-            folder_input = join(folders(1:end-1),'/');
-            input_directory = [char(folder_input) '/'];
+            % load(B{i})
+            FDvec = get_FDvec(B{i}, FD_threshold);
+            
+            [orig_cifti_filename, input_directory, ...
+                folders] = get_folder_params(A{i}, filesep);
             if no_output
                 output_directory = char(input_directory);
             end
-            foldersB = split(B{i},'/');
-            orig_motion_filename = char(foldersB(end));
-            folderB_input = join(foldersB(1:end-1),'/');
-            inputB_directory = [char(folderB_input) '/'];
+            [orig_motion_filename, inputB_directory, ...
+                ~] = get_folder_params(B{i}, filesep);
             if no_output
                 output_directory = char(inputB_directory);
             end
-            allFD = zeros(1,length(motion_data));
-            for j = 1:length(motion_data)
-                allFD(j) = motion_data{j}.FD_threshold;
-            end
-            FDidx = find(round(allFD,3) == round(FD_threshold,3));
-            FDvec = motion_data{FDidx}.frame_removal;
-            FDvec = abs(FDvec-1);
-            
+
             if strcmpi(additional_mask,'none')==1
                 disp('No additional mask supplied. Using full time series. Frames will be excluded only by FD (unless removal of outliers is indicated).')
             else
@@ -323,77 +268,27 @@ else %use motion cenosoring
                 FDvec_temp = FDvec & (additionalvec);
                 FDvec = FDvec_temp;
             end
-            
+                        
             if exist('remove_outliers','var') == 0 || remove_outliers == 1
                 disp('Removal outliers not specified.  It will be performed by default.')
-                
-                %% additional frame removal based on Outliers command: isoutlier with "median" method.
-                cmd = [wb_command ' -cifti-stats ' char(input_directory) char(orig_cifti_filename) ' -reduce STDEV > ' stdev_temp_filename]
-                system(cmd);
-                clear cmd
-                disp('waiting 60 seconds for writing of temp file before reading. Line:258 (not an error)')
-                pause(30);  % to give time to write temp file, failed to load with pause(1)
-                STDEV_file=load(stdev_temp_filename); % load stdev of .nii file.
-                FDvec_keep_idx = find(FDvec==1); %find the kept frames from the FD mask
-                Outlier_file=isthisanoutlier(STDEV_file(FDvec_keep_idx),'median'); %find outlier
-                Outlier_idx=find(Outlier_file==1); %find outlier indices
-                FDvec(FDvec_keep_idx(Outlier_idx))=0; %set outliers to zero within FDvec
-                clear STDEV_file FDvec_keep_idx Outlier_file Outlier_idx
-                
-            else exist('remove_outliers','var') == 1 && remove_outliers == 0;
+                FDvec = remove_frames_from_FDvec([input_directory ...
+                    orig_cifti_filename], FDvec, stdev_temp_filename, ...
+                    wb_command, 30);
+            else % exist('remove_outliers','var') == 1 && remove_outliers == 0;
                 disp('Motion censoring performed on FD alone. Frames with outliers in BOLD std dev not removed');
             end
         end
         
-        %%
-        if strcmpi(minutes_limit,'none')==1
+        % Assign variables for minutes limit calculation
+        origin_dir_ext = char(folders(end-1));
+        if strcmpi(minutes_limit,'none')            
+            min_cmd_part = '_all_frames_at_';
+            min_file_end = ['_cifti_censor_FD_vector_All_Good_Frames_' origin_dir_ext];
             
-            fileID = fopen([char(output_directory) char(orig_motion_filename) '_' num2str(FD_threshold) '_cifti_censor_FD_vector_All_Good_Frames.txt'],'w');
+            fileID = fopen([char(output_directory) char(orig_motion_filename) '_' num2str(FD_threshold) min_file_end '.txt'],'w');
             fprintf(fileID,'%1.0f\n',FDvec);
             fclose(fileID);
-            
-            if strcmpi(smoothing_kernel,'none')==1
-                outfile = [char(output_directory) char(orig_cifti_filename) '_all_frames_at_FD_' num2str(FD_threshold) '_' char(folders(end-1)) '.' suffix2];
-            else
-                A_smoothed{i} = [char(output_directory) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernel) '.' suffix];
-                outfile = [A_smoothed{i} '_all_frames_at_FD_' num2str(FD_threshold) '_' char(folders(end-1)) '.' suffix2];
-                if exist(A_smoothed{i}) ==0 %check to see if smoothed file exists yet.
-                    Column = 'COLUMN';
-                    cmd = [wb_command ' -cifti-smoothing ' char(input_directory) char(orig_cifti_filename) ' ' num2str(smoothing_kernel) ' ' num2str(smoothing_kernel) ' ' Column ' ' char(output_directory) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernel)  '_' char(folders(end-1)) '.' suffix  ' -left-surface ' C{i} '  -right-surface ' D{i}]
-                    disp(cmd)
-                    system(cmd);
-                    clear cmd
-                else %smoothed series already exists
-                    disp('Smoothed series already created for this subject')
-                end
-            end
-            
-            if matrix_not_already_exist(outfile) % if the matrix already exists skip      add folder_input as param?
-                if strcmpi(smoothing_kernel,'none')==1
-                    cmd = [wb_command output_precision ' -cifti-correlation ' char(input_directory) char(orig_cifti_filename) ' ' char(output_directory) char(orig_cifti_filename) '_all_frames_at_FD_' num2str(FD_threshold) '_' char(folders(end-1)) '.' suffix2 ' -weights ' char(output_directory) char(orig_motion_filename) '_' num2str(FD_threshold) '_cifti_censor_FD_vector_All_Good_Frames.txt -fisher-z'];
-                    %cmd = [wb_command ' -cifti-correlation ' A{i} ' ' A{i} '_all_frames_at_FD_' num2str(FD_threshold) '.' suffix2 ' -weights ' B{i} '_' num2str(FD_threshold) '_cifti_censor_FD_vector_All_Good_Frames.txt -fisher-z'];
-                    tic;
-                    disp('Running wb_command cifti-correlation.  This may take a few minutes.')
-                    system(cmd);
-                    toc;
-                    clear cmd
-                else
-                    cmd = [wb_command output_precision ' -cifti-correlation ' A_smoothed{i} ' ' A_smoothed{i} '_all_frames_at_FD_' num2str(FD_threshold)  '_' char(folders(end-1)) '.' suffix2 ' -weights ' char(output_directory) char(orig_motion_filename) '_' num2str(FD_threshold) '_cifti_censor_FD_vector_All_Good_Frames.txt -fisher-z'];
-                    tic;
-                    disp('Running wb_command cifti-correlation.  This may take a few minutes.')
-                    system(cmd);
-                    toc;
-                    clear cmd
-                end
-            else
-                if strcmpi(smoothing_kernel,'none')==1
-                    subject_conn_exists = [char(output_directory) char(orig_cifti_filename) '_all_frames_at_FD_' num2str(FD_threshold)  '_' char(folders(end-1)) '.' suffix2 ' already exists']
-                else
-                    subject_conn_exists = [A_smoothed{i} '_all_frames_at_FD_' num2str(FD_threshold)  '_' char(folders(end-1)) '.' suffix2 ' already exists']
-                end
-            end
-            
-        else %Start minutes limit calculation
+        else 
             good_frames_idx = find(FDvec == 1);
             good_minutes = (length(good_frames_idx)*TR)/60; % number of good minutes in your data
             
@@ -401,134 +296,71 @@ else %use motion cenosoring
                 subject_has_too_few_frames = ['Subject ' num2str(i) ' has less than 30 seconds of good data']
                 
             elseif minutes_limit > good_minutes % if there is not enough data for your subject, just generate the matrix with all available frames
-                fileID = fopen([char(output_directory) char(orig_motion_filename) '_' num2str(FD_threshold) '_cifti_censor_FD_vector_All_Good_Frames.txt'],'w');
+ 
+                min_cmd_part = '_all_frames_at_';
+                min_file_end = ['_cifti_censor_FD_vector_All_Good_Frames_' origin_dir_ext '.txt'];
+                
+                fileID = fopen([char(output_directory) char(orig_motion_filename) '_' num2str(FD_threshold) min_file_end],'w');
                 fprintf(fileID,'%1.0f\n',FDvec);
                 fclose(fileID);
-                
-                if strcmp(smoothing_kernel,'none')==1 || strcmp(smoothing_kernel,'None')==1 || strcmp(smoothing_kernel,'NONE')==1
-                    outfile = [char(output_directory) char(orig_cifti_filename) '_all_frames_at_FD_' num2str(FD_threshold) '_' char(folders(end-1)) '.' suffix2];
-                else
-                    A_smoothed{i} = [char(output_directory) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernel) '.' suffix];
-                    outfile = [A_smoothed{i} '_all_frames_at_FD_' num2str(FD_threshold) '_' char(folders(end-1)) '.' suffix2];
-                    if exist(A_smoothed{i}) ==0 %check to see if smoothed file exists yet.
-                        Column = 'COLUMN';
-                        cmd = [wb_command ' -cifti-smoothing ' char(input_directory) char(orig_cifti_filename) ' ' num2str(smoothing_kernel) ' ' num2str(smoothing_kernel) ' ' Column ' ' char(output_directory) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernel)  '_' char(folders(end-1)) '.' suffix  ' -left-surface ' C{i} '  -right-surface ' D{i}];
-                        disp(cmd)
-                        system(cmd);
-                        clear cmd
-                    else %smoothed series already exists
-                        disp('Smoothed series already created for this subject')
-                    end
-                end
-                
-                if matrix_not_already_exist(outfile) % if the matrix already exists skip
-                    if strcmpi(smoothing_kernel,'none')==1
-                        cmd = [wb_command output_precision ' -cifti-correlation ' char(input_directory) char(orig_cifti_filename) ' ' char(output_directory) char(orig_cifti_filename) '_all_frames_at_FD_' num2str(FD_threshold)  '_' char(folders(end-1)) '.' suffix2 ' -weights ' char(output_directory) char(orig_motion_filename) '_' num2str(FD_threshold) '_cifti_censor_FD_vector_All_Good_Frames.txt -fisher-z'];
-                        %cmd = [wb_command ' -cifti-correlation ' A{i} ' ' A{i} '_all_frames_at_FD_' num2str(FD_threshold) '.' suffix2 ' -weights ' B{i} '_' num2str(FD_threshold) '_cifti_censor_FD_vector_All_Good_Frames.txt -fisher-z'];
-                        tic;
-                        disp('Running wb_command cifti-correlation.  This may take a few minutes.')
-                        system(cmd);
-                        toc;
-                        clear cmd
-                    else
-                        cmd = [wb_command output_precision ' -cifti-correlation ' A_smoothed{i} ' ' A_smoothed{i} '_all_frames_at_FD_' num2str(FD_threshold) '.' suffix2 ' -weights ' char(output_directory) char(orig_motion_filename) '_' num2str(FD_threshold) '_cifti_censor_FD_vector_All_Good_Frames'  '_' char(folders(end-1)) '.txt -fisher-z'];
-                        tic;
-                        disp('Running wb_command cifti-correlation.  This may take a few minutes.')
-                        system(cmd);
-                        toc;
-                        clear cmd
-                    end
-                    
-                else
-                    if strcmpi(smoothing_kernel,'none')==1
-                        subject_conn_exists = [char(output_directory) char(orig_cifti_filename) '_all_frames_at_FD_' num2str(FD_threshold)  '_' char(folders(end-1)) '.' suffix2 ' already exists']
-                    else
-                        subject_conn_exists = [A_smoothed{i} '_all_frames_at_FD_' num2str(FD_threshold)  '_' char(folders(end-1)) '.' suffix2 ' already exists']
-                    end
-                end
-                
-                
+                               
             elseif minutes_limit <= good_minutes % if there is enough data, match the amount of data used for your subject matrix to the minutes_limit
                 good_frames_needed = round(minutes_limit*60/TR); %number of good frames to randomly pull
                 rand_good_frames = sort(randperm(length(good_frames_idx),good_frames_needed));
                 FDvec_cut = zeros(length(FDvec),1);
                 ones_idx = good_frames_idx(rand_good_frames);
                 FDvec_cut(ones_idx) = 1; % the new vector that should match good frames with the minutes limit
+ 
+                min_cmd_part = ['_' num2str(minutes_limit) '_minutes_of_data_at_'];
+                min_file_end = ['_cifti_censor_FD_vector' min_cmd_part num2str(FD_threshold) '_threshold' '_' origin_dir_ext '.txt']; 
                 
-                fileID = fopen([char(output_directory) char(orig_motion_filename) '_' num2str(FD_threshold) '_cifti_censor_FD_vector_' num2str(minutes_limit) '_minutes_of_data_at_' num2str(FD_threshold) '_threshold.txt'],'w');
-                fprintf(fileID,'%1.0f\n',FDvec_cut);
+                fileID = fopen([char(output_directory) char(orig_motion_filename) '_' num2str(FD_threshold) min_file_end],'w');
+                fprintf(fileID,'%1.0f\n', FDvec_cut);
                 fclose(fileID);
-                if strcmpi(smoothing_kernel,'none')==1
-                    outfile = [char(output_directory) char(orig_cifti_filename) '_' num2str(minutes_limit) '_minutes_of_data_at_FD_' num2str(FD_threshold) '_' char(folders(end-1)) '.' suffix2]
-                else % Smooth
-                    A_smoothed{i} = [char(output_directory) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernel) '_' char(folders(end-1)) '.' suffix];
-                    outfile = [A_smoothed{i} '_' num2str(minutes_limit) '_minutes_of_data_at_FD_' num2str(FD_threshold) '_' char(folders(end-1)) '.' suffix2]
-                    if exist(A_smoothed{i}) == 0
-                        Column = 'COLUMN';
-                        cmd = [wb_command ' -cifti-smoothing ' char(input_directory) char(orig_cifti_filename) ' ' num2str(smoothing_kernel) ' ' num2str(smoothing_kernel) ' ' Column ' ' char(output_directory) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernel)  '_' char(folders(end-1)) '.' suffix  ' -left-surface ' C{i} '  -right-surface ' D{i}];
-                        disp(cmd)
-                        system(cmd);
-                        clear cmd
-                    else %smoothed series already exists
-                        disp('Smoothed series already created for this subject')
-                    end
-                end
-                if matrix_not_already_exist(outfile) % check to see if the file already exists
-                    if strcmpi(smoothing_kernel,'none')==1
-                        cmd = [wb_command output_precision ' -cifti-correlation ' char(input_directory) char(orig_cifti_filename) ' ' char(output_directory) char(orig_cifti_filename) '_' num2str(minutes_limit) '_minutes_of_data_at_FD_' num2str(FD_threshold) '_' char(folders(end-1)) '.' suffix2 ' -weights ' char(output_directory) char(orig_motion_filename) '_' num2str(FD_threshold) '_cifti_censor_FD_vector_' num2str(minutes_limit) '_minutes_of_data_at_' num2str(FD_threshold) '_threshold.txt -fisher-z'];
-                        %cmd = [wb_command ' -cifti-correlation ' A{i} ' ' A{i} '_' num2str(minutes_limit) '_minutes_of_data_at_FD_' num2str(FD_threshold) '.' suffix2 ' -weights ' B{i} '_' num2str(FD_threshold) '_cifti_censor_FD_vector_' num2str(minutes_limit) '_minutes_of_data_at_' num2str(FD_threshold) '_threshold.txt -fisher-z'];
-                        tic;
-                        disp('Running wb_command cifti-correlation.  This may take a few minutes.')
-                        system(cmd);
-                        toc;
-                        clear cmd
-                    else
-                        cmd = [wb_command output_precision ' -cifti-correlation ' A_smoothed{i} ' ' A_smoothed{i} '_' num2str(minutes_limit) '_minutes_of_data_at_FD_' num2str(FD_threshold) '_' char(folders(end-1)) '.' suffix2 ' -weights ' char(output_directory) char(orig_motion_filename) '_' num2str(FD_threshold) '_cifti_censor_FD_vector_' num2str(minutes_limit) '_minutes_of_data_at_' num2str(FD_threshold) '_threshold'  '_' char(folders(end-1)) '.txt -fisher-z'];
-                        %cmd = [wb_command ' -cifti-correlation ' A{i} ' ' A{i} '_' num2str(minutes_limit) '_minutes_of_data_at_FD_' num2str(FD_threshold) '.' suffix2 ' -weights ' B{i} '_' num2str(FD_threshold) '_cifti_censor_FD_vector_' num2str(minutes_limit) '_minutes_of_data_at_' num2str(FD_threshold) '_threshold.txt -fisher-z'];
-                        tic;
-                        disp('Running wb_command cifti-correlation.  This may take a few minutes.')
-                        system(cmd);
-                        toc;
-                        clear cmd
-                    end
-                else
-                    if strcmpi(smoothing_kernel,'none')==1
-                        subject_conn_exists = [char(output_directory) char(orig_cifti_filename) '_' num2str(minutes_limit) '_minutes_of_data_at_FD_' num2str(FD_threshold)  '_' char(folders(end-1)) '.' suffix2 ' already exists']
-                    else
-                        subject_conn_exists = [A_smoothed{i} '_' num2str(minutes_limit) '_minutes_of_data_at_FD_' num2str(FD_threshold)  '_' char(folders(end-1)) '.' suffix2 ' already exists']
-                    end
-                    
-                end
-                
             else
                 'something is wrong with regard to number of good minutes calc'
+            end
+        end
+        
+        % Run minutes limit calculation
+        if strcmpi(minutes_limit,'none') || good_minutes >= 0.5
+            if strcmpi(smoothing_kernel, 'none')
+                left = 'none';
+                right = 'none';
+            else
+                left = C{i};
+                right = D{i};
+            end
+            [A_smoothed{i}, outfile] = minutes_limit_calculation(...
+                FD_threshold, input_directory, left, min_cmd_part, ...
+                min_file_end, motion_file, orig_motion_filename, ...
+                output_directory, output_precision, ...
+                orig_cifti_filename, origin_dir_ext, right, ...
+                smoothing_kernel, suffix, suffix2, wb_command);
+            if strcmpi(smoothing_kernel, 'none')
+                clear A_smoothed
             end
         end
     end
 end
 
-% Greg Conan modularized this section on 2019-11-11
+%% GENERATE FINAL CONC text file here to use in other code (e.g. cifti_conn_pairwise_corr.m)
+% Greg Conan modularized everything from here down on 2019-11-11
 if make_dconn_conc
     disp('Done making (p or d)conn.nii for subjects.  Making output .concs')
-    
-    %% GENERATE FINAL CONC text file here to use in other code (e.g. cifti_conn_pairwise_corr.m)
-        
+            
     %% Get all paths to put into different conc files
-    if strcmpi(smoothing_kernel,'none')==1
-        [dconn_paths_all_frames, dconn_paths_all_frames_at_thresh, ...
-         dconn_paths_all_frames_at_thresh_min_lim, ...
-         subjectswithoutenoughdata] = sort_paths(A, B, FD_threshold, ...
-            minutes_limit, motion_data, motion_file, no_output, ...
-            output_directory, 'none', stdev_temp_filename, suffix2, ...
-            TR, wb_command, additional_mask);
-    else %use smoothed data
-        [dconn_paths_all_frames, dconn_paths_all_frames_at_thresh, ...
-         dconn_paths_all_frames_at_thresh_min_lim, ...
-         subjectswithoutenoughdata] = sort_paths(A, B, FD_threshold, ...
-            minutes_limit, motion_data, motion_file, no_output, ...
-            output_directory, A_smoothed, stdev_temp_filename, ...
-            suffix2, TR, wb_command, additional_mask);
+    if strcmpi(smoothing_kernel,'none')
+        smoothing = 'none';
+    else  % use smoothed data
+        smoothing = A_smoothed;
     end
+    [dconn_paths_all_frames, dconn_paths_all_frames_at_thresh, ...
+     dconn_paths_all_frames_at_thresh_min_lim, ...
+     subjectswithoutenoughdata] = sort_paths(A, B, FD_threshold, ...
+        minutes_limit, motion_file, no_output, ...
+        output_directory, smoothing, stdev_temp_filename, suffix2, ...
+        TR, wb_command, additional_mask);
     
     %% Save all of those paths into .conc files
     finish_and_save_concs(A, FD_threshold, minutes_limit, ...
@@ -540,12 +372,6 @@ if make_dconn_conc
 else
 end
 disp('Done making output concs.')
-end
-
-
-function not_exist = matrix_not_already_exist(to_make)
-    % Return 1 if to_make does not exist, and 0 if it does
-    not_exist = (exist(to_make) == 0);
 end
 
 
@@ -571,8 +397,81 @@ function [paths, conc] = get_paths_from_conc(conc_file)
 end
 
 
+function [cifti, in_dir, folders] = get_folder_params(A_i, sep)
+    % Return the path to the original cifti file, the path to the input
+    % directory, and an object holding all parts of A_i's file path
+    folders = split(A_i,sep);
+    cifti = char(folders(end));
+    folder_input = join(folders(1:end-1),sep);
+    in_dir = [char(folder_input) sep];
+end
+
+
+function execute_display_and_clear(cmd, msg)
+    % Given a string that can be executed on the command line, execute it
+    % and then clear the variable holding that string. Also display msg.
+    tic;
+    disp(msg)
+    system(cmd);
+    toc;
+    clear cmd
+end
+
+
+function not_exist = matrix_not_already_exist(to_make)
+    % Return 1 if to_make does not exist, and 0 if it does
+    not_exist = (exist(to_make) == 0);
+end
+
+
+function [A_smoothed_i, outfile] = minutes_limit_calculation(...
+        FD_threshold, input_directory, left, min_cmd_part, ...
+        min_file_end, motion_file, orig_motion_filename, output_dir, ...
+        output_precision, orig_cifti_filename, origin_dir_ext, right, ...
+        smoothing_kernel, suffix, suffix2, wb_command)
+    % Calculate minutes_limit
+    if strcmpi(motion_file, 'none')
+       min_cmd_motion = [min_cmd_part 'FD_' motion_file]; 
+       min_file_end = [origin_dir_ext '.txt'];
+       weights = '.txt';
+    else
+       min_cmd_motion = [min_cmd_part 'FD_' num2str(FD_threshold)];
+    end
+    if strcmpi(smoothing_kernel,'none')
+        outfile = [char(output_dir) char(orig_cifti_filename) min_cmd_motion '_' origin_dir_ext '.' suffix2];
+        A_smoothed_i = 'none';
+    else % Smooth
+        A_smoothed_i = [char(output_dir) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernel) '_' origin_dir_ext '.' suffix];
+        outfile = [A_smoothed_i min_cmd_motion '_' origin_dir_ext '.' suffix2];
+        if exist(A_smoothed_i) == 0
+            Column = 'COLUMN';
+            cmd = [wb_command ' -cifti-smoothing ' char(input_directory) char(orig_cifti_filename) ' ' num2str(smoothing_kernel) ' ' num2str(smoothing_kernel) ' ' Column ' ' char(output_dir) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernel)  '_' origin_dir_ext '.' suffix ' -left-surface ' left '  -right-surface ' right];
+            execute_display_and_clear(cmd, cmd);
+        else %smoothed series already exists
+            disp('Smoothed series already created for this subject')
+        end
+    end
+    if matrix_not_already_exist(outfile) % check to see if the file already exists
+        if strcmpi(smoothing_kernel,'none')
+            if ~exist('weights', 'var')
+                weights = [' -weights ' char(output_dir) char(orig_motion_filename) '_' num2str(FD_threshold) min_file_end '.txt'];
+            end
+            cmd = [wb_command output_precision ' -cifti-correlation ' char(input_directory) char(orig_cifti_filename) ' ' char(output_dir) char(orig_cifti_filename) min_cmd_motion '_' origin_dir_ext '.' suffix2 weights ' -fisher-z'];
+        else
+            if ~exist('weights', 'var')
+                weights = [' -weights ' char(output_dir) char(orig_motion_filename) '_' num2str(FD_threshold) min_file_end '.txt'];
+            end
+            cmd = [wb_command output_precision ' -cifti-correlation ' A_smoothed_i ' ' A_smoothed_i min_cmd_motion '_' origin_dir_ext '.' suffix2 weights ' -fisher-z'];
+        end
+        execute_display_and_clear(cmd, 'Running wb_command cifti-correlation.  This may take a few minutes.');
+    else
+        disp([outfile ' already exists'])
+    end
+end
+
+
 function [all_frames, at_thresh, at_thr_min_lim, without] = sort_paths(...
-        A, B, FD_threshold, minutes_limit, motion_data, motion_file, ...
+        A, B, FD_threshold, minutes_limit, motion_file, ...
         no_output, output_directory, smoothed, stdev_temp_filename, ...
         suffix2, TR, wb_command, additional_mask)
     % Build and return 4 lists of paths to connectivity matrix files, such
@@ -595,7 +494,7 @@ function [all_frames, at_thresh, at_thr_min_lim, without] = sort_paths(...
         if strcmpi(motion_file,'none')==1
             all_frames = [all_frames; strcat({A_dir}, '_all_frames_at_FD_', {num2str(FD_threshold)}, '_', char(folders(end-1)), '.', {suffix2})];
         else
-            FDvec = get_FDvec(B{i}, FD_threshold, motion_data);
+            FDvec = get_FDvec(B{i}, FD_threshold);
             FDvec = additional_frame_removal(additional_mask, FDvec, ...
                         input_directory, orig_cifti_filename, ...
                         stdev_temp_filename, wb_command);
@@ -610,18 +509,19 @@ end
 
 function FDvec = additional_frame_removal(additional_mask, FDvec, ...
     input_directory, orig_cifti_filename, stdev_temp_filename, wb_command)
-    % additional frame removal based on Outliers command: isoutlier with "median" method.
+    % additional frame removal depending on additional_mask
     if strcmpi(additional_mask, 'none')==1
-        FDvec = remove_frames_from_FDvec( ...
-            orig_cifti_filename, FDvec, input_directory, ...
-            stdev_temp_filename, wb_command, 1);
+        FDvec = remove_frames_from_FDvec([input_directory ...
+                orig_cifti_filename], FDvec, ...
+            stdev_temp_filename, wb_command, 30);
     else
         FDvec = add_mask_to_FDvec(FDvec, additional_mask);
         if exist('remove_outliers','var') == 0 || remove_outliers == 1
             disp('Removal outliers not specified.  It will be performed by default.')
-            FDvec = remove_frames_from_FDvec( ...
-                orig_cifti_filename, FDvec, input_directory, ...
-                stdev_temp_filename, wb_command, 1);
+            FDvec = remove_frames_from_FDvec([input_directory ...
+                orig_cifti_filename], FDvec, ...
+                stdev_temp_filename, wb_command, 30);
+            
         elseif exist('remove_outliers','var') == 1 && remove_outliers == 0
             disp('Motion censoring performed on FD alone. Frames with outliers in BOLD std dev not removed');
         end
@@ -629,20 +529,10 @@ function FDvec = additional_frame_removal(additional_mask, FDvec, ...
 end
 
 
-function [cifti, in_dir, folders] = get_folder_params(A_i, sep)
-    % Return the path to the original cifti file, the path to the input
-    % directory, and an object holding all parts of A_i's file path
-    folders = split(A_i,sep);
-    cifti = char(folders(end));
-    folder_input = join(folders(1:end-1),sep);
-    in_dir = [char(folder_input) sep];
-end
-
-
-function FDvec = get_FDvec(B_i, fd, motion_data)
+function FDvec = get_FDvec(B_i, fd)
     % Get FDvec from the file at B_i
     load(B_i)
-    allFD = zeros(1,length(motion_data));
+    allFD = zeros(1,length(motion_data)); % motion_data comes from load(B_i)
     for j = 1:length(motion_data)
         allFD(j) = motion_data{j}.FD_threshold;
     end
@@ -652,16 +542,17 @@ function FDvec = get_FDvec(B_i, fd, motion_data)
 end
 
 
-function FDvec = remove_frames_from_FDvec(cifti_name, FDvec, in_dir, ...
+function FDvec = remove_frames_from_FDvec(cifti_file, FDvec, ...
         stdev, wb_command, wait)
     % additional frame removal based on Outliers command: isoutlier with "median" method.
-    cmd = [wb_command ' -cifti-stats ' char(in_dir) char(cifti_name) ' -reduce STDEV > ' stdev];
+    cmd = [wb_command ' -cifti-stats ' char(cifti_file) ' -reduce STDEV > ' stdev];
     system(cmd);
-    if wait
-        disp('waiting 60 seconds for writing of temp file before reading. (not an error)')
-        pause(30);
+    if wait > 0
+        disp(['waiting ' num2str(wait) ' seconds for writing of temp file before reading. (not an error)'])
+        pause(wait);
     end
     clear cmd
+    
     STDEV_file=load(stdev); % load stdev of .nii file.
     FDvec_keep_idx = find(FDvec==1); %find the kept frames from the FD mask
     Outlier_file=isthisanoutlier(STDEV_file(FDvec_keep_idx),'median'); %find outlier
@@ -702,8 +593,8 @@ function finish_and_save_concs(A, FD_threshold, minutes_limit, ...
         smoothing_kernel, all_frames, at_thresh, at_thr_min_lim, without)
     % Given lists of paths to connectivity matrices, save them into their
     % respective .conc files
-    [~, input_directory, ~] = get_folder_params(A{1}, '/');
     if no_output
+        [~, input_directory, ~] = get_folder_params(A{1}, '/');
         output_directory =char(input_directory);
     end
     conc_names = {'all_frames', 'at_thresh', 'at_thr_min_lim', ...
@@ -732,7 +623,7 @@ end
 
 function conc_path = get_conc_path(series_path, p_or_d, FD_threshold, ...
         minutes_condition, minutes_limit, smoothing, motion, output_dir)
-    % Build and return the path to one .conc file from input parameters
+    % Build and return the path to one .conc file using input parameters
     [~, series, ext] = fileparts(series_path);
     conc_prefix = [series ext '_' p_or_d 'conn_of_' p_or_d 'tseries'];
     fd = num2str(FD_threshold);
@@ -765,7 +656,7 @@ function make_conn_conc(concname, paths)
     paths = paths{1};
     if ~isempty(paths)
         concname = char(concname);
-        fileID = fopen(concname,'a');
+        fileID = fopen(concname,'w');
         [nrows, ~] = size(paths);
         for row = 1:nrows
             fprintf(fileID, '%s\n', char(paths{row}));

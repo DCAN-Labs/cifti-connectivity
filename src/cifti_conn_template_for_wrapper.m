@@ -107,11 +107,9 @@ disp('All series files exist continuing ...')
 if series == 'ptseries'
     suffix = 'ptseries.nii';
     suffix2 = 'pconn.nii';
-    suffix3 = 'pconn';
 elseif series == 'dtseries'
     suffix = 'dtseries.nii';
     suffix2 = 'dconn.nii';
-    suffix3 = 'dconn';
 else
     'series needs to be "ptseries" or "dtseries"';
     return
@@ -220,7 +218,7 @@ N = num2str(length(A)); % number of observations
 
 %mean = s1/N
 cmd = [wb_command ' -cifti-math " s1/' N '" ' output_conc '_AVG.' suffix2 ' -var s1 ' output_conc '_AVG.' suffix2];
-execute_and_clear(cmd)
+execute_and_clear(cmd);
 
 %% Rename file to display chosen options
 cmd = ['mv ' output_conc '_AVG.' suffix2 ' ' template_file];

@@ -4,7 +4,7 @@
 CIFTI connectivity wrapper
 Greg Conan: conan@ohsu.edu
 Created 2019-06-18
-Last Updated 2019-11-11
+Last Updated 2019-11-12
 """
 
 ##################################
@@ -30,7 +30,7 @@ from socket import gethostname
 import subprocess
 import sys
 
-# Constants
+### Constants
 
 # Names of scripts to run from this one
 CHOICES_TO_RUN = ["cifti_conn_matrix", "cifti_conn_template",
@@ -73,6 +73,9 @@ WB_EXACLOUD = ("/home/exacloud/lustre1/fnl_lab/code/external/utilities/"
 WB_RUSHMORE = "/mnt/max/software/workbench/bin_linux64/wb_command"
 
 
+### Functions
+
+
 def main():
 
     cli_args = get_cli_args()
@@ -96,12 +99,6 @@ def main():
         globals()[script](cli_args)
 
         print_timestamp_when("finished", script)
-
-    # Clear .conc file to add new contents later, since cifti_conn_matrix uses
-    # 'append' instead of 'write'
-    if will_make_conn_conc(cli_args):
-        for conc_file in iglob(get_conc_file_paths(cli_args)):
-            open(conc_file, "w").close()
 
 
 def get_cli_args():
@@ -731,11 +728,10 @@ def get_conc_file_paths(cli_args):
     if not next(iglob(paths), None):
         paths = os.path.join(cli_args.output, "{}_{}conn_of_{}*{}.conc".format(
             os.path.basename(cli_args.series_file), cli_args.time_series[0], 
-            cli_args.time_series, cli_args.motion
+            cli_args.time_series, "none"
         ))
         if not next(iglob(paths), None):
-            raise FileNotFoundError("Could not find .conc file: {}".format(
-                                    paths))
+            print("No .conc file(s) at {}".format(paths))
     return paths
 
 

@@ -50,7 +50,7 @@ If these arguments are excluded, then by default the wrapper will use hardcoded 
 
 These arguments can be included without a value.
 
-`--matrices_conc` will make a list of connectivity matrices created by this wrapper. By default, the wrapper will not make a list. Running `cifti_conn_pairwise_corr` will only work if a list of connectivity matrices already exists. This wrapper can create a list by running `cifti_conn_matrix` or `cifti_conn_template` with this `--matrices_conc` flag included. If the flag is included with an argument, then the wrapper will save the `.conc` file to that path. Otherwise, the wrapper will automatically generate the `.conc` file name and save a file with that name in the `--output` folder. 
+`--make_conn_conc` will make a list of connectivity matrices created by this wrapper. By default, the wrapper will not make a list. Running `cifti_conn_pairwise_corr` will only work if a list of connectivity matrices already exists. This wrapper can create a list by running `cifti_conn_matrix` or `cifti_conn_template` with this `--matrices_conc` flag included; and the wrapper will automatically generate the `.conc` file name and save a file with that name in the `--output` folder. 
 
 `--keep_conn_matrices` will make the wrapper keep the `dconn/pconn` files after creating them. Otherwise, it will delete the `d/pconns` after adding them to the average `d/pconn`. The `d/pconn` files are needed to run `cifti_conn_pairwise_corr`, which compares the `d/pconn` files to the average file created by `cifti_conn_template`. So if this flag is excluded and `cifti_conn_pairwise_corr` is run, then the `d/pconn` files will be kept until the `pairwise_corr` script finishes.
 
@@ -81,6 +81,8 @@ Each of the arguments below accepts one value, a valid file or directory path. E
 `--left` takes the `.conc` file name of subjects' left midthicknessfile. This argument is only needed for smoothing. If this flag is included but no filename is given, then `ADHD_DVARS_group_left_midthickness_surfaces.conc` will be used as the default name. If only a filename is given, then the wrapper will look for the file in the `--input` directory. However, this argument also accepts absolute paths. 
 
 `--right` takes the `.conc` file name of subjects' right midthicknessfile. This argument is only needed for smoothing. If this flag is included but no filename is given, then `ADHD_DVARS_group_right_midthickness_surfaces.conc` will be used as the default name. If only a filename is given, then the wrapper will look for the file in the `--input` directory. However, this argument also accepts absolute paths.
+
+`--dtseries` takes the path to 1 .conc file with a list of `.dtseries.nii` file paths. If the series_file has a list of paths to .ptseries.nii files, then a dtseries .conc file is still needed for outlier detection and removal. If this argument is excluded, then this script will try to find a `.dtseries.nii` file in the same location as the series_file argument.
 
 `--template` takes the full path of a template file created by `cifti_conn_template`. If `cifti_conn_pairwise_corr` is run before running `cifti_conn_template`, this file should already exist at the specified path. By default, the wrapper will build the name of this file by combining the values of the `series_file`, `--motion`, `--fd_threshold`, and `--minutes` arguments. The wrapper will then either create or look for a file by that name in the `--output` directory if needed. This argument is unnecessary for `cifti_conn_matrix` to run.
 
@@ -137,6 +139,9 @@ The `p_or_dconn` argument passed to `cifti_conn_pairwise_corr` is simply the `ti
 
 ### 11/1/2019
 - Fixed a bug where `cifti_conn_matrix` would treat two different files with the same name in different folders as if they were the same file, skipping over one. Also, updated README to reflect that --remove_outliers, --additional_mask, and --make_conn_conc were added.
+
+### 11/12/2019
+- Added the `--dtseries` parameter.
 
 ## Feature Requests
  - https://trello.com/b/hQkyYits/robo-science

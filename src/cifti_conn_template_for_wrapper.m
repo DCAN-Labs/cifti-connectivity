@@ -1,4 +1,4 @@
-function cifti_conn_template_for_wrapper(wb_command, dt_or_ptseries_conc_file, series, motion_file, FD_threshold, TR, minutes_limit, smoothing_kernal, left_surface_file, right_surface_file, bit8, remove_outliers, additional_mask, make_conn_conc, output_directory, dtseries_conc, keep_conn_matrices, template_file)
+function cifti_conn_template_for_wrapper(wb_command, dt_or_ptseries_conc_file, series, motion_file, FD_threshold, TR, minutes_limit, smoothing_kernel, left_surface_file, right_surface_file, bit8, remove_outliers, additional_mask, make_dconn_conc, output_directory, dtseries_conc, keep_conn_matrices, template_file)
 % wb_command = workbench command path
 % dt_or_ptseries_conc_file = dense timeseries or parcellated timeseries conc
 % file (i.e. text file with paths to each file being included
@@ -24,7 +24,6 @@ function cifti_conn_template_for_wrapper(wb_command, dt_or_ptseries_conc_file, s
 % removeoutliers. 0 or 1.  If 1, outliers are removed from the BOLD signal.  If 0 frames will only be censored by the FD threshold.
 % Addional mask on top of the FD threshold.  This mask can be used to extract rests between blocks of task. This vector of 1s and zeros should be the same length as your dtseries.
 % make_dconn_conc - make a list of connectivity matrices that were created by this script. If this is 'none', no list will be created; otherwise it should be a valid path.
-% template_file = File path and name of template file to be created.
 %  NOTE: this will delete dconns that have been previously made if the name
 %  matches the expected output.
 
@@ -33,22 +32,17 @@ function cifti_conn_template_for_wrapper(wb_command, dt_or_ptseries_conc_file, s
 %below a specific threshold.
 %Added an arguement to keep .dconns/pconns after being made.
 
-% Old hardcoded wb_command paths
-%wb_command = '/Applications/workbench/bin_macosx64/wb_command'; 
-%wb_command = 'LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6 /usr/local/bin/wb_command';
-%wb_command = '/home/exacloud/lustre1/fnl_lab/code/external/utilities/workbench-9253ac2/bin_rh_linux64/wb_command';
-
 %% Change strings to numbers if not already numbers  (i.e.if using the shell command)
 %Check to make sure that smoothing kernal is a number
-if is_none(smoothing_kernal)
-    smoothing_kernal= 'none';
-elseif isnumeric(smoothing_kernal)==1
+if is_none(smoothing_kernel)
+    smoothing_kernel= 'none';
+elseif isnumeric(smoothing_kernel)==1
     disp('kernal is passed in as numeric')
 else
     disp('kernal is  passed in as string. converting to numeric')
-    smoothing_kernal = str2num(smoothing_kernal);
+    smoothing_kernel = str2num(smoothing_kernel);
 end
-disp(smoothing_kernal);
+disp(smoothing_kernel);
 
 if exist('output_directory','var') == 0
     output_directory = [];
@@ -149,7 +143,7 @@ end
 %check to make sure there is a list of subjects in conc file.
 conc = strsplit(dt_or_ptseries_conc_file, '.');
 conc = char(conc(end));
-if is_none(smoothing_kernal)
+if is_none(smoothing_kernel)
     Note = ['No smoothing, continuing...'];
     if strcmp('conc',conc) == 1
         left = left_surface_file;
@@ -190,30 +184,30 @@ end
 %% Generate Average Matrix
 % This section and the next one were rewritten by Greg Conan on 2019-11-06 
 % to trim redundant code and modularize it into separate functions.
-% make first dconn.nii then rename
+% Make first dconn.nii then rename
 already_added = containers.Map('KeyType', 'char', 'ValueType', 'logical');
-matrix_filename = get_matrix_filename(A, 1, smoothing_kernal, suffix);
+matrix_filename = get_matrix_filename(A, 1, smoothing_kernel, suffix);
 dconn_paths = get_dconn_paths(FD_threshold, minutes_limit, ...
     matrix_filename, motion_file, output_directory, suffix2);
 motion_B = get_motion_file(motion_file, B, 1);
 output_conc = get_output_conc(dt_or_ptseries_conc_file, output_directory);
 dconn_paths = make_avg_matrix(A, motion_B, bit8, dconn_paths, ...
     FD_threshold, 1, left, minutes_limit, output_directory, ...
-    remove_outliers, right, series, smoothing_kernal, TR, wb_command, ...
-    additional_mask, make_conn_conc, dtseries_conc, already_added);
+    remove_outliers, right, series, smoothing_kernel, TR, wb_command, ...
+    additional_mask, make_dconn_conc, dtseries_conc, already_added);
 rename_avg_dconn(dconn_paths, output_conc, keep_conn_matrices, suffix2);
 already_added(dconn_paths) = 1;
 
 %% Build rest of template
 for i = 2:length(A)
-    matrix_filename = get_matrix_filename(A, i, smoothing_kernal, suffix);
+    matrix_filename = get_matrix_filename(A, i, smoothing_kernel, suffix);
     dconn_paths = char(get_dconn_paths(FD_threshold, minutes_limit, ...
         matrix_filename, motion_file, output_directory, suffix2));
     motion_B = get_motion_file(motion_file, B, i);
     dconn_paths = make_avg_matrix(A, motion_B, bit8, dconn_paths, ...
         FD_threshold, i, left, minutes_limit, output_directory, ...
-        remove_outliers, right, series, smoothing_kernal, TR, wb_command, ...
-        additional_mask, make_conn_conc, dtseries_conc, already_added);
+        remove_outliers, right, series, smoothing_kernel, TR, wb_command, ...
+        additional_mask, make_dconn_conc, dtseries_conc, already_added);
     rename_avg_dconn(dconn_paths, output_conc, keep_conn_matrices, suffix2);
     cifti_math_and_cleanup(dconn_paths, output_conc, ...
         keep_conn_matrices, suffix2, wb_command);
@@ -264,9 +258,9 @@ end
 
 function motion_file = get_motion_file(motion_file, B, ix)
     % Get the path to a motion file, or 'none' if there is no motion file
-    if ~is_none(motion_file)
-        motion_file = B{ix};
+    if is_none(motion_file)
     else
+        motion_file = B{ix};
     end
 end
 
@@ -280,13 +274,13 @@ end
 
 function matrix_file = make_avg_matrix(A, B, bit8, dconn_paths, ...
         fd, ix, left, minutes, output_dir, remove_outliers, right, ...
-        series, smoothing, TR, wb_command, add_mask, make_conn_conc, ...
+        series, smoothing, TR, wb_command, add_mask, make_dconn_conc, ...
         dt, matrices_added)
     % Create connectivity matrix unless one already exists
     paths = dir(dconn_paths);
     if isempty(paths)
         disp('conn.nii does not exist for this subject yet.  Running code to create matrix.')
-        matrix_file = char(cifti_conn_matrix_for_wrapper(wb_command, A{ix}, series, B, fd, TR, minutes, smoothing, left, right, bit8, remove_outliers, add_mask, make_conn_conc, output_dir, dt));
+        matrix_file = char(cifti_conn_matrix_for_wrapper(wb_command, A{ix}, series, B, num2str(fd), TR, minutes, smoothing, left, right, bit8, remove_outliers, add_mask, make_dconn_conc, output_dir, dt));
         % rename output to average
         if exist(matrix_file) == 0
             NOTE = ['Exiting...file ' dconn_paths ' does not exist, likely because subject does not meet criteron or there was an error making their connectivity matrix']
@@ -305,7 +299,7 @@ function matrix_file = make_avg_matrix(A, B, bit8, dconn_paths, ...
                 break
             end
         end
-        if matrix_file
+        if exist(matrix_file)
             disp('conn.nii exist for this subject yet already.  Renaming to AVG for first subject.')
         else
             disp(['Error: Mismatch in the number of matrix files: ' matrix_file])

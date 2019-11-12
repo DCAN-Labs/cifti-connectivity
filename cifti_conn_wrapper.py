@@ -4,7 +4,7 @@
 CIFTI connectivity wrapper
 Greg Conan: conan@ohsu.edu
 Created 2019-06-18
-Last Updated 2019-11-06
+Last Updated 2019-11-11
 """
 
 ##################################
@@ -24,6 +24,7 @@ Last Updated 2019-11-06
 
 import argparse
 from datetime import datetime
+from glob import iglob
 import os
 from socket import gethostname
 import subprocess
@@ -36,7 +37,11 @@ CHOICES_TO_RUN = ["cifti_conn_matrix", "cifti_conn_template",
                   "cifti_conn_pairwise_corr"]
 
 # Default directories for input data, output data, and wrapped scripts (src)
-PWD = os.getcwd()
+try:
+    PWD = os.path.dirname(os.path.abspath(__file__))
+    assert os.access(os.path.join(PWD, "cifti_conn_wrapper.py"), os.R_OK)
+except (OSError, AssertionError):
+    PWD = os.getcwd()
 DEFAULT_INPUT = os.path.join(PWD, "raw")
 DEFAULT_OUTPUT = os.path.join(PWD, "data")
 DEFAULT_SOURCE = os.path.join(PWD, "src")
@@ -83,19 +88,20 @@ def main():
               .format(completion, step, datetime.now().strftime(
                   "%H:%M:%S on %b %d, %Y")))
 
-    # Run all scripts the user said to run, in the order  the user gave them
+    # Run all scripts the user said to run, in the order the user gave them
     for script in cli_args.scripts_to_run:
         print_timestamp_when("started", script)
 
         # Call script
         globals()[script](cli_args)
 
-        # If script made a connectivity matrix list as a .conc file, find it
-        if script != CHOICES_TO_RUN[2] and will_make_conn_conc(cli_args):
-            cli_args = validate_readable_file("matrices_conc", cli_args,
-                                              argparse.ArgumentParser())
-
         print_timestamp_when("finished", script)
+
+    # Clear .conc file to add new contents later, since cifti_conn_matrix uses
+    # 'append' instead of 'write'
+    if will_make_conn_conc(cli_args):
+        for conc_file in iglob(get_conc_file_paths(cli_args)):
+            open(conc_file, "w").close()
 
 
 def get_cli_args():
@@ -157,21 +163,15 @@ def get_cli_args():
               "option does nothing for ptseries.")
     )
 
-    # Optional: Get name of .conc file listing connectivity matrices for
-    # cifti_conn_pairwise_corr
+    # Optional: Specify whether to make list of conn matrices made by wrapper
     parser.add_argument(
         "-c",
-        "--matrices_conc",
-        nargs="?",
-        default="none",
-        const="auto",
-        help=("List of connectivity matrices to be made by cifti_conn_matrix"
-              "and/or compared to the template by cifti_conn_pairwise_corr."
-              "By default, the wrapper will not make a list. If this flag is "
-              "included without any arguments, then the wrapper will "
-              "automatically generate the name of the .conc file. To use a "
-              "different list, enter a path to 1 readable .conc file as the "
-              "argument for this flag.")
+        "--make_conn_conc",
+        action="store_const",
+        const="1",
+        default="0",
+        help=("Make a list of connectivity matrices created by this wrapper. "
+              "By default, the wrapper will not make a list.")
     )
 
     # Optional: .dtseries file for outlier detection
@@ -393,20 +393,6 @@ def validate_cli_args(cli_args, parser):
                              "--dtseries argument.")
     cli_args = validate_readable_file("dtseries", cli_args, parser)
 
-    # Add list of connectivity matrices to CLI args namespace if pairwise_corr
-    # is being run
-    if cli_args.matrices_conc == "auto":
-        setattr(cli_args, "matrices_conc", get_matrices_concname(cli_args))
-    if CHOICES_TO_RUN[2] in cli_args.scripts_to_run:
-
-        # Unless cifti_conn_matrix or cifti_conn_template will make 
-        # matrices_conc file, ensure that matrices_conc exists already
-        if cli_args.matrices_conc == "none":
-            setattr(cli_args, "matrices_conc", get_matrices_concname(cli_args))
-        if not will_make_conn_conc(cli_args):
-            cli_args = validate_readable_file("matrices_conc",
-                                              cli_args, parser)
-
     # Return cli_args with workbench command, MRE dir, and template file added
     return add_wb_command_mre_dir_and_template_to(cli_args, parser)
 
@@ -457,7 +443,7 @@ def will_make_conn_conc(cli_args):
     connectivity matrices made by the wrapper, and False otherwise.
     """
     return ((CHOICES_TO_RUN[0] in cli_args.scripts_to_run or CHOICES_TO_RUN[1]
-             in cli_args.scripts_to_run) and cli_args.matrices_conc != "none")
+             in cli_args.scripts_to_run) and cli_args.make_conn_conc == "1")
 
 
 def validate_and_get_input_dir(cli_args, parser):
@@ -597,18 +583,20 @@ def get_matrices_concname(cli_args):
     # Get series_file name without its path
     series = os.path.basename(cli_args.series_file)
 
-    # Re-format p/d series to create filename of matrices_conc list
+    # Re-format p/d series to create filename of matrices .conc list
     if cli_args.time_series == "ptseries":
         p_or_d = "_pconn_of_ptseries"
     else:
         p_or_d = "_dconn_of_dtseries"
+
+    print(cli_args.fd_threshold)
 
     # Get parts of conn matrices list filename about minutes and FD threshold
     if cli_args.minutes != "none":
         minutes_and_fd = ("{}_minutes_of_data_at_FD_{}".format(
                           cli_args.minutes, cli_args.fd_threshold))
     else:
-        minutes_and_fd = "_all_frames_at_FD_" + cli_args.fd_threshold
+        minutes_and_fd = "_all_frames_at_FD_{}".format(cli_args.fd_threshold)
 
     return "".join((cli_args.output, series, p_or_d, minutes_and_fd, ".conc"))
 
@@ -732,6 +720,25 @@ def get_template_file_path(cli_args):
                     cli_args.time_series[0], "conn.nii"))
 
 
+def get_conc_file_paths(cli_args):
+    """
+    Build and return an incomplete path to one .conc file from input parameters
+    """
+    paths = os.path.join(cli_args.output, "{}_{}conn_of_{}*{}.conc".format(
+        os.path.basename(cli_args.series_file), cli_args.time_series[0], 
+        cli_args.time_series, cli_args.fd_threshold
+    ))
+    if not next(iglob(paths), None):
+        paths = os.path.join(cli_args.output, "{}_{}conn_of_{}*{}.conc".format(
+            os.path.basename(cli_args.series_file), cli_args.time_series[0], 
+            cli_args.time_series, cli_args.motion
+        ))
+        if not next(iglob(paths), None):
+            raise FileNotFoundError("Could not find .conc file: {}".format(
+                                    paths))
+    return paths
+
+
 def get_matrix_or_template_parameters(cli_args):
     """
     cifti_conn_matrix and cifti_conn_template both have the same required
@@ -755,7 +762,7 @@ def get_matrix_or_template_parameters(cli_args):
         cli_args.beta8,
         cli_args.remove_outliers,
         cli_args.additional_mask,
-        cli_args.matrices_conc,
+        cli_args.make_conn_conc,
         cli_args.output,
         cli_args.dtseries
     ])
@@ -780,7 +787,6 @@ def cifti_conn_matrix(cli_args):
     :param cli_args: argparse namespace with all command-line arguments
     :return: N/A
     """
-    print(cli_args.matrices_conc)
     subprocess.check_call([os.path.join(DEFAULT_SOURCE, SCRIPT_MATRIX),
                            cli_args.mre_dir]
                           + get_matrix_or_template_parameters(cli_args))
@@ -819,29 +825,29 @@ def cifti_conn_pairwise_corr(cli_args):
     # Reformat time series variable to pass to cifti_conn_pairwise_corr script
     p_or_d = cli_args.time_series[0] + "conn"
 
-    print(cli_args.matrices_conc)
-
     # Call cifti_conn_pairwise_corr script
-    subprocess.check_call((
-        os.path.join(DEFAULT_SOURCE, SCRIPT_PAIRWISE_CORR),
-        cli_args.mre_dir,
-        cli_args.wb_command,
-        cli_args.template,
-        p_or_d,
-        cli_args.matrices_conc,
-        cli_args.keep_conn_matrices
-    ))
+    for conc_file in iglob(get_conc_file_paths(cli_args)):
+        print(conc_file)
+        subprocess.check_call((
+            os.path.join(DEFAULT_SOURCE, SCRIPT_PAIRWISE_CORR),
+            cli_args.mre_dir,
+            cli_args.wb_command,
+            cli_args.template,
+            p_or_d,
+            conc_file,
+            cli_args.keep_conn_matrices
+        ))
 
-    # If user said not to keep conn matrices but pairwise_corr used them,
-    # then try to delete the conn matrices after pairwise_corr finishes
-    if will_delete_conn_matrices_later(cli_args):
-        try:
-            with open(cli_args.matrices_conc) as infile:
-                for line in infile:
-                    print("Deleting " + line)
-                    os.unlink(line)
-        except FileNotFoundError as e:
-            print("Could not find file at " + e.filename)
+        # If user said not to keep conn matrices but pairwise_corr used them,
+        # then try to delete the conn matrices after pairwise_corr finishes
+        if will_delete_conn_matrices_later(cli_args):
+            try:
+                with open(conc_file) as infile:
+                    for line in infile:
+                        print("Deleting " + line)
+                        os.unlink(line)
+            except FileNotFoundError as e:
+                print("Could not find file at " + e.filename)
 
 
 if __name__ == '__main__':

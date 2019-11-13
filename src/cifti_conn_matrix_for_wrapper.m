@@ -266,9 +266,9 @@ else %use motion censoring
         % Assign variables for minutes limit calculation
         if strcmpi(minutes_limit,'none')            
             min_cmd_part = '_all_frames_at_';
-            min_file_end = ['_cifti_censor_FD_vector_All_Good_Frames_' hash];
+            min_file_end = ['_cifti_censor_FD_vector_All_Good_Frames_' hash '.txt'];
             
-            fileID = fopen([char(output_directory) char(orig_motion_filename) '_' num2str(FD_threshold) min_file_end '.txt'],'w');
+            fileID = fopen([char(output_directory) char(orig_motion_filename) '_' num2str(FD_threshold) min_file_end],'w');
             fprintf(fileID,'%1.0f\n',FDvec);
             fclose(fileID);
         else 
@@ -456,12 +456,12 @@ function [A_smoothed_i, outfile] = minutes_limit_calculation(...
     if matrix_not_already_exist(outfile) % check to see if the file already exists
         if strcmpi(smoothing_kernel,'none')
             if ~exist('weights', 'var')
-                weights = [' -weights ' char(output_dir) char(orig_motion_filename) '_' num2str(FD_threshold) min_file_end '.txt'];
+                weights = [' -weights ' char(output_dir) char(orig_motion_filename) '_' num2str(FD_threshold) min_file_end];
             end
             cmd = [wb_command ' ' output_precision ' -cifti-correlation ' char(input_directory) char(orig_cifti_filename) ' ' char(output_dir) char(orig_cifti_filename) min_cmd_motion '_' hash '.' suffix2 weights ' -fisher-z'];
         else
             if ~exist('weights', 'var')
-                weights = [' -weights ' char(output_dir) char(orig_motion_filename) '_' num2str(FD_threshold) min_file_end '.txt'];
+                weights = [' -weights ' char(output_dir) char(orig_motion_filename) '_' num2str(FD_threshold) min_file_end];
             end
             cmd = [wb_command ' ' output_precision ' -cifti-correlation ' A_smoothed_i ' ' A_smoothed_i min_cmd_motion '_' hash '.' suffix2 weights ' -fisher-z'];
         end

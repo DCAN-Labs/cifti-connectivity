@@ -98,9 +98,11 @@ For dtseries, subjects are expected to have the naming convention `XXXXX_Atlas.d
 
 ## Outputs
 Within the output folder, here is what the outputs will look like:
-- The output of `cifti_conn_matrix` will look like `./data/XXXXXX-X_FNL_preproc_Gordon_subcortical.ptseries.nii_5_minutes_of_data_at_FD_0.2_jHv9e.pconn.nii`
+- The output of `cifti_conn_matrix` will look like `./data/XXXXXX-X_FNL_preproc_Gordon_subcortical.ptseries.nii_5_minutes_of_data_at_FD_0.2_mmsFsRXXXXX.pconn.nii`
 - The output of `cifti_conn_template` will look like `dtseries_AVG.dconn.nii`
-- The output of `cifti_conn_pairwise_corr` will look like `./data/XXXXXX-X_FNL_preproc_Gordon_subcortical.ptseries.nii_5_minutes_of_data_at_FD_0.2_jHv9e.pconn.nii`
+- The output of `cifti_conn_pairwise_corr` will look like `./data/XXXXXX-X_FNL_preproc_Gordon_subcortical.ptseries.nii_5_minutes_of_data_at_FD_0.2_mmsFsRXXXXX.pconn.nii`
+
+The string of characters at the end is a unique identifying hash for the input `.ptseries` file.
 
 ## Explanation of Process
 
@@ -110,7 +112,7 @@ This code build a connectivity matrix from BOLD times series data. The code has 
 
 The `time_series` argument passed to `cifti_conn_matrix` is either 'dtseries' or 'ptseries'. The wrapper infers it from the `series_file`.
 
-To avoid conflating multiple files with the same name listed in the input `.conc`, this script generates a random hash of five characters and appends it to the end of each connectivity matrix's filename.
+To avoid conflating multiple files with the same name listed in the input `.conc`, for each connectivity matrix, this wrapper generates a random hash composed of the first character of each folder name in its `.d/ptseries.nii` file's path. The wrapper also appends the first 5 characters of the `.d/ptseries.nii` file name. This gives each output connectivity matrix a unique but consistent filename.
 
 ### cifti_conn_template
 This code builds a template d/pconn from a list of d/ptseries.  If the d/pconn exists, if will load it instead of making it anew (calls `cifti_conn_matrix`). It takes the same arguments from the wrapper as `cifti_conn_matrix`, as well as `keep_conn_matrices`.
@@ -142,8 +144,9 @@ The `p_or_dconn` argument passed to `cifti_conn_pairwise_corr` is simply the `ti
 ### 11/1/2019
 - Fixed a bug where `cifti_conn_matrix` would treat two different files with the same name in different folders as if they were the same file, skipping over one. Also, updated README to reflect that --remove_outliers, --additional_mask, and --make_conn_conc were added.
 
-### 11/12/2019
+### 11/13/2019
 - Added the `--dtseries` parameter.
+- Updated description of how the hash appended to each connectivity matrix filename is generated.
 
 ## Feature Requests
  - https://trello.com/b/hQkyYits/robo-science

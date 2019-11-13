@@ -9,10 +9,6 @@ function outfile = cifti_conn_matrix_for_wrapper(wb_command, dt_or_ptseries_conc
 %TR = TR of your data
 %minutes_limit = specify the number of minutes to be used to generate the correlation matrix
 %smoothing_kernal = specify smoothing kernal (note: if no smoothing file to be used, type 'none')
-% example:
-% cifti_conn_matrix('/mnt/max/shared/code/internal/utilities/hcp_comm_det_damien/ADHD_DVARS_group_dtseries.conc','dtseries','/mnt/max/shared/code/internal/utilities/hcp_comm_det_damien/ADHD_DVARS_group_motion.conc',0.2,2.5,5,2.55,'/mnt/max/shared/code/internal/utilities/hcp_comm_det_damien/ADHD_DVARS_group_right_midthickness_surfaces.conc','/mnt/max/shared/code/internal/utilities/hcp_comm_det_damien/ADHD_DVARS_group_right_midthickness_surfaces.conc');
-% example without smoothing:
-% cifti_conn_matrix('/mnt/max/shared/code/internal/utilities/hcp_comm_det_damien/ADHD_DVARS_group_dtseries.conc','dtseries','/mnt/max/shared/code/internal/utilities/hcp_comm_det_damien/ADHD_DVARS_group_motion.conc',0.2,2.5,5,'none','none','none');
 
 
 % NEED TO ADD Write "Outlier frames" to file.
@@ -30,7 +26,7 @@ function outfile = cifti_conn_matrix_for_wrapper(wb_command, dt_or_ptseries_conc
 % right_surface_file='/mnt/max/shared/data/study/ABCD/ABCD_SIEMENS_SEFMNoT2/cub-sub-NDARINVLWRKNUN1/ses-baselineYear1Arm1/HCP_release_20161027_v1.1/cub-sub-NDARINVLWRKNUN1/MNINonLinear/fsaverage_LR32k/cub-sub-NDARINVLWRKNUN1.R.midthickness.32k_fs_LR.surf.gii';
 % bit8 = set to 1 if you want to make the outputs smaller in 8bit
 
-orig_conc_folders = split(dt_or_ptseries_conc_file,'/');
+orig_conc_folders = split(dt_or_ptseries_conc_file, filesep);
 orig_conc_file = char(orig_conc_folders(end));
 
 no_output = 0;
@@ -38,7 +34,6 @@ if exist('output_directory','var') == 0
     output_directory =[];
     no_output = 1;
     disp('All series files exist continuing ...')
-
 else
     output_directory = char(output_directory);
 end
@@ -100,9 +95,6 @@ end
 [A, conc] = get_paths_from_conc(dt_or_ptseries_conc_file);
 [dtseries_E, ~] = get_paths_from_conc(dtseries_conc);
 
-% Make list of characters to use for generating random hashes
-randoms = ['a':'z' 'A':'Z' '0':'9'];
-
 %% set file extensions
 if strcmpi(series, 'ptseries')
     suffix = 'ptseries.nii';
@@ -111,7 +103,6 @@ if strcmpi(series, 'ptseries')
 elseif strcmpi(series, 'dtseries')
     suffix = 'dtseries.nii';
     suffix2 = 'dconn.nii';
-    
     if exist('bit8','var') == 1
         if isnumeric(bit8)==1
         else
@@ -144,7 +135,6 @@ else
         C = {left_surface_file};
         D = {right_surface_file};
     end
-    
     for i = 1:length(C)
         if exist(C{i}) == 0
             NOTE = ['Subject left surface ' num2str(i) ' does not exist']
@@ -164,18 +154,18 @@ else
 end
 
 %% Generate Motion Vectors and correlation matrix
-hashes = cell(1, length(A));
+hashes = cell(1, length(A)); % Preallocate list mapping input ix to hash
 if strcmpi(motion_file,'none') % run this if no motion censoring
     disp('No motion files, will use all frames to generate matrices')
     for i = 1:length(A)
         [orig_cifti_filename, input_directory, ...
-            ~] = get_folder_params(A{i}, filesep);
+            folders] = get_folder_params(A{i}, filesep);
         if no_output
             output_directory =char(input_directory);
         end
-        
+       
         % Run minutes limit calculation
-        hash = randoms(randi(length(randoms), 1, 5));
+        hash = get_hash(folders);
         hashes{i} = hash;
         if strcmpi(smoothing_kernel, 'none')
             left = 'none';
@@ -220,7 +210,16 @@ else %use motion censoring
     for i = 1:length(B)
         motion_exten = strsplit(B{i}, '.');
         motion_exten = char(motion_exten(end));
-
+        
+        % Get input folder parameters and make hash
+        [orig_cifti_filename, input_directory, ...
+            folders] = get_folder_params(A{i}, filesep);
+        hash = get_hash(folders);
+        hashes{i} = hash;
+        if no_output
+            output_directory = char(input_directory);
+        end
+        
         if strcmp('mat',motion_exten) == 1
             other_motion_mask = 0; 
         else
@@ -238,24 +237,15 @@ else %use motion censoring
                 FDvec = remove_frames_from_FDvec(dtseries_E{i}, ...
                     FDvec, stdev_temp_filename, wb_command, 30);    
             else % exist('remove_outliers','var') == 1 && remove_outliers == 0;
-                
                 disp('Motion censoring performed on FD alone. Frames with outliers in BOLD std dev not removed');
             end
         else  %Use power 2014 motion
             FDvec = get_FDvec(B{i}, FD_threshold);
-            
-            [orig_cifti_filename, input_directory, ...
-                ~] = get_folder_params(A{i}, filesep);
-            if no_output
-                output_directory = char(input_directory);
-            end
-            
             [orig_motion_filename, inputB_directory, ...
                 ~] = get_folder_params(B{i}, filesep);
             if no_output
                 output_directory = char(inputB_directory);
             end
-
             if strcmpi(additional_mask,'none')==1
                 disp('No additional mask supplied. Using full time series. Frames will be excluded only by FD (unless removal of outliers is indicated).')
             else
@@ -263,7 +253,6 @@ else %use motion censoring
                 FDvec_temp = FDvec & (additionalvec);
                 FDvec = FDvec_temp;
             end
-                        
             if exist('remove_outliers','var') == 0 || remove_outliers == 1
                 disp('Removal outliers not specified.  It will be performed by default.')
                 FDvec = remove_frames_from_FDvec([input_directory ...
@@ -275,8 +264,6 @@ else %use motion censoring
         end
         
         % Assign variables for minutes limit calculation
-        hash = randoms(randi(length(randoms), 1, 5));
-        hashes{i} = hash;
         if strcmpi(minutes_limit,'none')            
             min_cmd_part = '_all_frames_at_';
             min_file_end = ['_cifti_censor_FD_vector_All_Good_Frames_' hash];
@@ -292,7 +279,6 @@ else %use motion censoring
                 subject_has_too_few_frames = ['Subject ' num2str(i) ' has less than 30 seconds of good data']
                 
             elseif minutes_limit > good_minutes % if there is not enough data for your subject, just generate the matrix with all available frames
- 
                 min_cmd_part = '_all_frames_at_';
                 min_file_end = ['_cifti_censor_FD_vector_All_Good_Frames_' hash '.txt'];
                 
@@ -332,6 +318,7 @@ else %use motion censoring
                 orig_motion_filename, hash, output_directory, ...
                 output_precision, right, smoothing_kernel, suffix, ...
                 suffix2, wb_command);
+            
             if strcmpi(smoothing_kernel, 'none')
                 clear A_smoothed
             end
@@ -371,7 +358,6 @@ if make_dconn_conc
         dconn_paths_all_frames, dconn_paths_all_frames_at_thresh, ...
         dconn_paths_all_frames_at_thresh_min_lim, ...
         subjectswithoutenoughdata)
-else
 end
 disp('Done making output concs.')
 end
@@ -402,10 +388,24 @@ end
 function [cifti, in_dir, folders] = get_folder_params(A_i, sep)
     % Return the path to the original cifti file, the path to the input
     % directory, and an object holding all parts of A_i's file path
-    folders = split(A_i,sep);
+    folders = split(A_i, sep);
     cifti = char(folders(end));
-    folder_input = join(folders(1:end-1),sep);
+    folder_input = join(folders(1:end-1), sep);
     in_dir = [char(folder_input) sep];
+end
+
+
+function hash = get_hash(folders)
+    % Return a string composed of the first character in every element of
+    % the 'folders' array except the last element, which has its first 5 
+    % characters at the end. This consistently but uniquely identifies
+    % each file based on its original location and ID.
+    folders_len = length(folders)-2;
+    hash = blanks(folders_len);
+    for d=1:folders_len
+        hash(1, d) = folders{d+1}(1);
+    end
+    hash = [hash folders{end}(1:5)];
 end
 
 
@@ -485,7 +485,7 @@ function [all_frames, at_thresh, at_thr_min_lim, without] = sort_paths(...
     without = [];        % Subjects with < 30 seconds of data
     for i = 1:length(A)
         hash = hashes{i};
-        [orig_cifti_filename, input_directory, ~] = get_folder_params(A{i}, '/');
+        [orig_cifti_filename, input_directory, ~] = get_folder_params(A{i}, filesep);
         if no_output
             output_directory = char(input_directory);
         end
@@ -594,7 +594,7 @@ function finish_and_save_concs(A, FD_threshold, minutes_limit, ...
     % Given lists of paths to connectivity matrices, save them into their
     % respective .conc files
     if no_output
-        [~, input_directory, ~] = get_folder_params(A{1}, '/');
+        [~, input_directory, ~] = get_folder_params(A{1}, filesep);
         output_directory =char(input_directory);
     end
     conc_names = {'all_frames', 'at_thresh', 'at_thr_min_lim', ...

@@ -298,7 +298,7 @@ function matrix_file = make_avg_matrix(A, B, bit8, dconn_paths, ...
             end
         end
         if exist(matrix_file)
-            disp('conn.nii exist for this subject yet already.  Renaming to AVG for first subject.')
+            disp('conn.nii already exists for this subject.  Renaming to AVG for first subject.')
         else
             disp(['Error: Mismatch in the number of matrix files: ' matrix_file])
             return

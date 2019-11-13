@@ -83,40 +83,27 @@ if exist('remove_outliers','var')
     end
 end
 
-
-% if strcmp(smoothing_kernal,'none')==1 || strcmp(smoothing_kernal,'None')==1 || strcmp(smoothing_kernal,'NONE')==1
-% smoothing_kernal= 'none';
-% else
-% end
-
-if strcmpi(smoothing_kernel,'none')==1
+if strcmpi(smoothing_kernel,'none')
     smoothing_kernel= 'none';
-elseif isnumeric(smoothing_kernel)==1
+elseif isnumeric(smoothing_kernel)
 else
     smoothing_kernel = str2num(smoothing_kernel);
 end
 
-if (strcmpi(smoothing_kernel,'none')~=1) && (strcmpi(series,'ptseries')==1)
+if (strcmpi(smoothing_kernel,'none')~=1) && (strcmpi(series,'ptseries'))
     disp('Check your settings. Smoothing not allowed on ptseries.');
     return
 else
 end
 
-%%
-%HARDCODE WARNING
-%wb_command =
-%'/home/exacloud/lustre1/fnl_lab/code/external/utilities/workbench/bin_rh_linux64/wb_command'; %old version
-%wb_command = '/home/exacloud/tempwork/fnl_lab/code/external/utilities/workbench-1.3.2/bin_rh_linux64/wb_command';%exacloud path
-%wb_command = '/usr/local/bin/wb_command';
-%wb_command = 'LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6 /usr/local/bin/wb_command'; % workbench command path
-%wb_command = '/Applications/workbench/bin_macosx64/wb_command'; % workbench command path
-
 %% Load concatenated paths (i.e. paths to ciftis)
 [A, conc] = get_paths_from_conc(dt_or_ptseries_conc_file);
 [dtseries_E, ~] = get_paths_from_conc(dtseries_conc);
 
+% Make list of characters to use for generating random hashes
+randoms = ['a':'z' 'A':'Z' '0':'9'];
+
 %% set file extensions
-disp(series)
 if strcmpi(series, 'ptseries')
     suffix = 'ptseries.nii';
     suffix2 = 'pconn.nii';
@@ -145,7 +132,7 @@ end
 
 disp(smoothing_kernel)
 %% prealocate memory if you want to do smoothing
-if strcmpi(smoothing_kernel,'none')
+if strcmpi(smoothing_kernel, 'none')
 else
     A_smoothed = num2cell(zeros(size(A)));
     % moved to line 178 (use motion censoring) Anders Perrone - 20171107
@@ -177,24 +164,33 @@ else
 end
 
 %% Generate Motion Vectors and correlation matrix
-
+hashes = cell(1, length(A));
 if strcmpi(motion_file,'none') % run this if no motion censoring
-    'No motion files, will use all frames to generate matrices'
+    disp('No motion files, will use all frames to generate matrices')
     for i = 1:length(A)
         [orig_cifti_filename, input_directory, ...
-            folders] = get_folder_params(A{i}, filesep);
+            ~] = get_folder_params(A{i}, filesep);
         if no_output
             output_directory =char(input_directory);
         end
         
         % Run minutes limit calculation
-        origin_dir_ext = char(folders(end-1));
-        min_file_end = ['_cifti_censor_FD_vector_All_Good_Frames_' origin_dir_ext '.txt'];
+        hash = randoms(randi(length(randoms), 1, 5));
+        hashes{i} = hash;
+        if strcmpi(smoothing_kernel, 'none')
+            left = 'none';
+            right = 'none';            
+        else
+            left = C{i};
+            right = D{i};
+        end
+        min_file_end = ['_cifti_censor_FD_vector_All_Good_Frames_' ...
+            hash '.txt'];
         [A_smoothed{i}, outfile] = minutes_limit_calculation(...
-            FD_threshold, input_directory, C{i}, '_all_frames_at_', ...
-            min_file_end, motion_file, 'none', origin_dir_ext, ...
-            output_directory, output_precision, orig_cifti_filename, ...
-            D{i}, smoothing_kernel, suffix, suffix2, wb_command);
+            FD_threshold, input_directory, left, '_all_frames_at_', ...
+            min_file_end, motion_file, orig_cifti_filename, 'none', ...
+            hash, output_directory, output_precision, right, ...
+            smoothing_kernel, suffix, suffix2, wb_command);
     end
 else %use motion censoring
     stdev_temp_filename=[output_directory orig_conc_file '_temp.txt']; %rename temp file so that it can't be overwritten when the script is run in parallel.
@@ -222,15 +218,15 @@ else %use motion censoring
     
     %% Generate motion vector for subject and generate correlation matrix
     for i = 1:length(B)
-            motion_exten = strsplit(B{i}, '.');
-            motion_exten = char(motion_exten(end));
-            
-            if strcmp('mat',motion_exten) == 1
-                other_motion_mask =0; 
-            else
-                other_motion_mask =1;  
-            end
-        if other_motion_mask ==1 %use an external mask rather than calculating the mask here (e.g. .txt file.
+        motion_exten = strsplit(B{i}, '.');
+        motion_exten = char(motion_exten(end));
+
+        if strcmp('mat',motion_exten) == 1
+            other_motion_mask = 0; 
+        else
+            other_motion_mask = 1;  
+        end
+        if other_motion_mask %use an external mask rather than calculating the mask here (e.g. .txt file.
             FDvec=B{i};
             if exist('remove_outliers','var') == 0 %remove outliers from external mask
                 disp('Removal outliers not specified.  It will be performed by default.')
@@ -245,16 +241,15 @@ else %use motion censoring
                 
                 disp('Motion censoring performed on FD alone. Frames with outliers in BOLD std dev not removed');
             end
-        else
-            %Use power 2014 motion
-            % load(B{i})
+        else  %Use power 2014 motion
             FDvec = get_FDvec(B{i}, FD_threshold);
             
             [orig_cifti_filename, input_directory, ...
-                folders] = get_folder_params(A{i}, filesep);
+                ~] = get_folder_params(A{i}, filesep);
             if no_output
                 output_directory = char(input_directory);
             end
+            
             [orig_motion_filename, inputB_directory, ...
                 ~] = get_folder_params(B{i}, filesep);
             if no_output
@@ -280,10 +275,11 @@ else %use motion censoring
         end
         
         % Assign variables for minutes limit calculation
-        origin_dir_ext = char(folders(end-1));
+        hash = randoms(randi(length(randoms), 1, 5));
+        hashes{i} = hash;
         if strcmpi(minutes_limit,'none')            
             min_cmd_part = '_all_frames_at_';
-            min_file_end = ['_cifti_censor_FD_vector_All_Good_Frames_' origin_dir_ext];
+            min_file_end = ['_cifti_censor_FD_vector_All_Good_Frames_' hash];
             
             fileID = fopen([char(output_directory) char(orig_motion_filename) '_' num2str(FD_threshold) min_file_end '.txt'],'w');
             fprintf(fileID,'%1.0f\n',FDvec);
@@ -298,7 +294,7 @@ else %use motion censoring
             elseif minutes_limit > good_minutes % if there is not enough data for your subject, just generate the matrix with all available frames
  
                 min_cmd_part = '_all_frames_at_';
-                min_file_end = ['_cifti_censor_FD_vector_All_Good_Frames_' origin_dir_ext '.txt'];
+                min_file_end = ['_cifti_censor_FD_vector_All_Good_Frames_' hash '.txt'];
                 
                 fileID = fopen([char(output_directory) char(orig_motion_filename) '_' num2str(FD_threshold) min_file_end],'w');
                 fprintf(fileID,'%1.0f\n',FDvec);
@@ -312,13 +308,12 @@ else %use motion censoring
                 FDvec_cut(ones_idx) = 1; % the new vector that should match good frames with the minutes limit
  
                 min_cmd_part = ['_' num2str(minutes_limit) '_minutes_of_data_at_'];
-                min_file_end = ['_cifti_censor_FD_vector' min_cmd_part num2str(FD_threshold) '_threshold' '_' origin_dir_ext '.txt']; 
-                
+                min_file_end = ['_cifti_censor_FD_vector' min_cmd_part num2str(FD_threshold) '_threshold' '_' hash '.txt'];
                 fileID = fopen([char(output_directory) char(orig_motion_filename) '_' num2str(FD_threshold) min_file_end],'w');
                 fprintf(fileID,'%1.0f\n', FDvec_cut);
                 fclose(fileID);
             else
-                'something is wrong with regard to number of good minutes calc'
+                disp('something is wrong with regard to number of good minutes calc')
             end
         end
         
@@ -333,14 +328,14 @@ else %use motion censoring
             end
             [A_smoothed{i}, outfile] = minutes_limit_calculation(...
                 FD_threshold, input_directory, left, min_cmd_part, ...
-                min_file_end, motion_file, orig_motion_filename, ...
-                output_directory, output_precision, ...
-                orig_cifti_filename, origin_dir_ext, right, ...
-                smoothing_kernel, suffix, suffix2, wb_command);
+                min_file_end, motion_file, orig_cifti_filename, ...
+                orig_motion_filename, hash, output_directory, ...
+                output_precision, right, smoothing_kernel, suffix, ...
+                suffix2, wb_command);
             if strcmpi(smoothing_kernel, 'none')
                 clear A_smoothed
             end
-        end
+        end        
     end
 end
 
@@ -350,17 +345,24 @@ if make_dconn_conc
     disp('Done making (p or d)conn.nii for subjects.  Making output .concs')
             
     %% Get all paths to put into different conc files
-    if strcmpi(smoothing_kernel,'none')
+    if strcmpi(smoothing_kernel, 'none')
         smoothing = 'none';
     else  % use smoothed data
         smoothing = A_smoothed;
     end
+    if strcmpi(motion_file, 'none')
+        motion_file_obj = 'none';
+        stdev = 'none';
+    else
+        motion_file_obj = B;
+        stdev = stdev_temp_filename;
+    end    
     [dconn_paths_all_frames, dconn_paths_all_frames_at_thresh, ...
      dconn_paths_all_frames_at_thresh_min_lim, ...
-     subjectswithoutenoughdata] = sort_paths(A, B, FD_threshold, ...
-        minutes_limit, motion_file, no_output, ...
-        output_directory, smoothing, stdev_temp_filename, suffix2, ...
-        TR, wb_command, additional_mask);
+     subjectswithoutenoughdata] = sort_paths(A, motion_file_obj, ...
+        FD_threshold, hashes, minutes_limit, motion_file, no_output, ...
+        output_directory, smoothing, stdev, suffix2, TR, wb_command, ...
+        additional_mask);
     
     %% Save all of those paths into .conc files
     finish_and_save_concs(A, FD_threshold, minutes_limit, ...
@@ -426,26 +428,26 @@ end
 
 function [A_smoothed_i, outfile] = minutes_limit_calculation(...
         FD_threshold, input_directory, left, min_cmd_part, ...
-        min_file_end, motion_file, orig_motion_filename, output_dir, ...
-        output_precision, orig_cifti_filename, origin_dir_ext, right, ...
-        smoothing_kernel, suffix, suffix2, wb_command)
+        min_file_end, motion_file, orig_cifti_filename, ...
+        orig_motion_filename, hash, output_dir, output_precision, ...
+        right, smoothing_kernel, suffix, suffix2, wb_command)
     % Calculate minutes_limit
     if strcmpi(motion_file, 'none')
        min_cmd_motion = [min_cmd_part 'FD_' motion_file]; 
-       min_file_end = [origin_dir_ext '.txt'];
-       weights = '.txt';
+       min_file_end = [hash '.txt'];
+       weights = '';
     else
        min_cmd_motion = [min_cmd_part 'FD_' num2str(FD_threshold)];
     end
     if strcmpi(smoothing_kernel,'none')
-        outfile = [char(output_dir) char(orig_cifti_filename) min_cmd_motion '_' origin_dir_ext '.' suffix2];
+        outfile = [char(output_dir) char(orig_cifti_filename) min_cmd_motion '_' hash '.' suffix2];
         A_smoothed_i = 'none';
     else % Smooth
-        A_smoothed_i = [char(output_dir) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernel) '_' origin_dir_ext '.' suffix];
-        outfile = [A_smoothed_i min_cmd_motion '_' origin_dir_ext '.' suffix2];
+        A_smoothed_i = [char(output_dir) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernel) '_' hash '.' suffix];
+        outfile = [A_smoothed_i min_cmd_motion '_' hash '.' suffix2];
         if exist(A_smoothed_i) == 0
             Column = 'COLUMN';
-            cmd = [wb_command ' -cifti-smoothing ' char(input_directory) char(orig_cifti_filename) ' ' num2str(smoothing_kernel) ' ' num2str(smoothing_kernel) ' ' Column ' ' char(output_dir) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernel)  '_' origin_dir_ext '.' suffix ' -left-surface ' left '  -right-surface ' right];
+            cmd = [wb_command ' -cifti-smoothing ' char(input_directory) char(orig_cifti_filename) ' ' num2str(smoothing_kernel) ' ' num2str(smoothing_kernel) ' ' Column ' ' char(output_dir) char(orig_cifti_filename(1:length(char(orig_cifti_filename))-13)) '_SMOOTHED_' num2str(smoothing_kernel)  '_' hash '.' suffix ' -left-surface ' left '  -right-surface ' right];
             execute_display_and_clear(cmd, cmd);
         else %smoothed series already exists
             disp('Smoothed series already created for this subject')
@@ -456,12 +458,12 @@ function [A_smoothed_i, outfile] = minutes_limit_calculation(...
             if ~exist('weights', 'var')
                 weights = [' -weights ' char(output_dir) char(orig_motion_filename) '_' num2str(FD_threshold) min_file_end '.txt'];
             end
-            cmd = [wb_command output_precision ' -cifti-correlation ' char(input_directory) char(orig_cifti_filename) ' ' char(output_dir) char(orig_cifti_filename) min_cmd_motion '_' origin_dir_ext '.' suffix2 weights ' -fisher-z'];
+            cmd = [wb_command ' ' output_precision ' -cifti-correlation ' char(input_directory) char(orig_cifti_filename) ' ' char(output_dir) char(orig_cifti_filename) min_cmd_motion '_' hash '.' suffix2 weights ' -fisher-z'];
         else
             if ~exist('weights', 'var')
                 weights = [' -weights ' char(output_dir) char(orig_motion_filename) '_' num2str(FD_threshold) min_file_end '.txt'];
             end
-            cmd = [wb_command output_precision ' -cifti-correlation ' A_smoothed_i ' ' A_smoothed_i min_cmd_motion '_' origin_dir_ext '.' suffix2 weights ' -fisher-z'];
+            cmd = [wb_command ' ' output_precision ' -cifti-correlation ' A_smoothed_i ' ' A_smoothed_i min_cmd_motion '_' hash '.' suffix2 weights ' -fisher-z'];
         end
         execute_display_and_clear(cmd, 'Running wb_command cifti-correlation.  This may take a few minutes.');
     else
@@ -471,7 +473,7 @@ end
 
 
 function [all_frames, at_thresh, at_thr_min_lim, without] = sort_paths(...
-        A, B, FD_threshold, minutes_limit, motion_file, ...
+        A, B, FD_threshold, hashes, minutes_limit, motion_file, ...
         no_output, output_directory, smoothed, stdev_temp_filename, ...
         suffix2, TR, wb_command, additional_mask)
     % Build and return 4 lists of paths to connectivity matrix files, such
@@ -482,9 +484,10 @@ function [all_frames, at_thresh, at_thr_min_lim, without] = sort_paths(...
     at_thr_min_lim = []; % All frames at FD_threshold and minutes_limit
     without = [];        % Subjects with < 30 seconds of data
     for i = 1:length(A)
-        [orig_cifti_filename, input_directory, folders] = get_folder_params(A{i}, '/');
+        hash = hashes{i};
+        [orig_cifti_filename, input_directory, ~] = get_folder_params(A{i}, '/');
         if no_output
-            output_directory =char(input_directory);
+            output_directory = char(input_directory);
         end
         if strcmpi(smoothed, 'none')==1
             A_dir = strcat(char(output_directory),char(orig_cifti_filename));
@@ -492,7 +495,7 @@ function [all_frames, at_thresh, at_thr_min_lim, without] = sort_paths(...
             A_dir = smoothed{i};
         end
         if strcmpi(motion_file,'none')==1
-            all_frames = [all_frames; strcat({A_dir}, '_all_frames_at_FD_', {num2str(FD_threshold)}, '_', char(folders(end-1)), '.', {suffix2})];
+            all_frames = [all_frames; strcat({A_dir}, '_all_frames_at_FD_', {num2str(FD_threshold)}, '_', hash, '.', {suffix2})];
         else
             FDvec = get_FDvec(B{i}, FD_threshold);
             FDvec = additional_frame_removal(additional_mask, FDvec, ...
@@ -500,7 +503,7 @@ function [all_frames, at_thresh, at_thr_min_lim, without] = sort_paths(...
                         stdev_temp_filename, wb_command);
             
             [at_thresh, at_thr_min_lim, without] = collect_conns( ...
-                A_dir, suffix2, FD_threshold, FDvec, folders, ...
+                A_dir, suffix2, FD_threshold, FDvec, hash, ...
                 minutes_limit, TR, at_thresh, at_thr_min_lim, without);
         end
     end
@@ -552,7 +555,6 @@ function FDvec = remove_frames_from_FDvec(cifti_file, FDvec, ...
         pause(wait);
     end
     clear cmd
-    
     STDEV_file=load(stdev); % load stdev of .nii file.
     FDvec_keep_idx = find(FDvec==1); %find the kept frames from the FD mask
     Outlier_file=isthisanoutlier(STDEV_file(FDvec_keep_idx),'median'); %find outlier
@@ -563,26 +565,24 @@ end
 
 
 function [at_thresh, at_thresh_min_lim, without] = collect_conns( ...
-    A_i, ext, FD_threshold, FDvec, folders, min_lim, TR, ...
+    A_i, ext, FD_threshold, FDvec, hash, min_lim, TR, ...
     at_thresh, at_thresh_min_lim, without)
     % Get the names of connectivity matrices which meet FD threshold or 
     % lack enough subject data
     fd = num2str(FD_threshold);
-    parent = char(folders(end-1));
     if strcmpi(min_lim,'none')==1
-        at_thresh = [at_thresh; strcat({A_i}, '_all_frames_at_FD_', {fd}, '_', parent, '.', {ext})];
+        at_thresh = [at_thresh; strcat({A_i}, '_all_frames_at_FD_', {fd}, '_', hash, '.', {ext})];
     else
         good_frames_idx = find(FDvec == 1);
         good_minutes = (length(good_frames_idx)*TR)/60;
-
         if good_minutes < 0.5
-            without = [without; strcat({A_i}, '_lessthan30sec_', {fd}, '_', parent, '.', {ext})];
+            without = [without; strcat({A_i}, '_lessthan30sec_', {fd}, '_', hash, '.', {ext})];
         elseif min_lim > good_minutes
-            at_thresh = [at_thresh; strcat({A_i}, '_all_frames_at_FD_', {fd}, '_', parent, '.', {ext})];
+            at_thresh = [at_thresh; strcat({A_i}, '_all_frames_at_FD_', {fd}, '_', hash, '.', {ext})];
         elseif min_lim <= good_minutes
-            at_thresh_min_lim = [at_thresh_min_lim; strcat({A_i}, '_', {num2str(min_lim)}, '_minutes_of_data_at_FD_', {fd}, '_', parent, '.', {ext})];
+            at_thresh_min_lim = [at_thresh_min_lim; strcat({A_i}, '_', {num2str(min_lim)}, '_minutes_of_data_at_FD_', {fd}, '_', hash, '.', {ext})];
         else
-            'something is wrong generating conc files'
+            disp('something is wrong generating conc files')
         end
     end
 end

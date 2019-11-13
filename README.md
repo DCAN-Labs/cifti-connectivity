@@ -98,9 +98,9 @@ For dtseries, subjects are expected to have the naming convention `XXXXX_Atlas.d
 
 ## Outputs
 Within the output folder, here is what the outputs will look like:
-- The output of `cifti_conn_matrix` will look like `./data/XXXXXX-X_FNL_preproc_Gordon_subcortical.ptseries.nii_5_minutes_of_data_at_FD_0.2.pconn.nii`
+- The output of `cifti_conn_matrix` will look like `./data/XXXXXX-X_FNL_preproc_Gordon_subcortical.ptseries.nii_5_minutes_of_data_at_FD_0.2_jHv9e.pconn.nii`
 - The output of `cifti_conn_template` will look like `dtseries_AVG.dconn.nii`
-- The output of `cifti_conn_pairwise_corr` will look like `./data/XXXXXX-X_FNL_preproc_Gordon_subcortical.ptseries.nii_5_minutes_of_data_at_FD_0.2.pconn.nii`
+- The output of `cifti_conn_pairwise_corr` will look like `./data/XXXXXX-X_FNL_preproc_Gordon_subcortical.ptseries.nii_5_minutes_of_data_at_FD_0.2_jHv9e.pconn.nii`
 
 ## Explanation of Process
 
@@ -109,6 +109,8 @@ Within the output folder, here is what the outputs will look like:
 This code build a connectivity matrix from BOLD times series data. The code has the option of using motion censoring (highly encouraged), to ensure that the connectivity matrix is accurate. It takes these arguments from the wrapper: `series_file`, `time_series`, `motion_file`, `fd_threshold`, `tr`, `minutes_limit`, `smoothing_kernel`, `left`, `right`, and `beta8`.
 
 The `time_series` argument passed to `cifti_conn_matrix` is either 'dtseries' or 'ptseries'. The wrapper infers it from the `series_file`.
+
+To avoid conflating multiple files with the same name listed in the input `.conc`, this script generates a random hash of five characters and appends it to the end of each connectivity matrix's filename.
 
 ### cifti_conn_template
 This code builds a template d/pconn from a list of d/ptseries.  If the d/pconn exists, if will load it instead of making it anew (calls `cifti_conn_matrix`). It takes the same arguments from the wrapper as `cifti_conn_matrix`, as well as `keep_conn_matrices`.

@@ -227,18 +227,8 @@ else %use motion censoring
         end
         if other_motion_mask %use an external mask rather than calculating the mask here (e.g. .txt file.
             FDvec=B{i};
-            if exist('remove_outliers','var') == 0 %remove outliers from external mask
-                disp('Removal outliers not specified.  It will be performed by default.')
-                FDvec = remove_frames_from_FDvec(dtseries_E{i}, ...
-                    FDvec, stdev_temp_filename, wb_command, 30);  
-                
-            elseif remove_outliers == 1 %remove outliers from external mask
-                disp('Removing outliers using .dtseries file...')
-                FDvec = remove_frames_from_FDvec(dtseries_E{i}, ...
-                    FDvec, stdev_temp_filename, wb_command, 30);    
-            else % exist('remove_outliers','var') == 1 && remove_outliers == 0;
-                disp('Motion censoring performed on FD alone. Frames with outliers in BOLD std dev not removed');
-            end
+            FDvec = remove_outliers_if(remove_outliers, FDvec, ...
+                dtseries_E{i}, stdev_temp_filename, wb_command, 30); 
         else  %Use power 2014 motion
             FDvec = get_FDvec(B{i}, FD_threshold);
             [orig_motion_filename, inputB_directory, ...
@@ -246,6 +236,7 @@ else %use motion censoring
             if no_output
                 output_directory = char(inputB_directory);
             end
+            
             if strcmpi(additional_mask,'none')==1
                 disp('No additional mask supplied. Using full time series. Frames will be excluded only by FD (unless removal of outliers is indicated).')
             else
@@ -253,14 +244,10 @@ else %use motion censoring
                 FDvec_temp = FDvec & (additionalvec);
                 FDvec = FDvec_temp;
             end
-            if exist('remove_outliers','var') == 0 || remove_outliers == 1
-                disp('Removal outliers not specified.  It will be performed by default.')
-                FDvec = remove_frames_from_FDvec([input_directory ...
-                    orig_cifti_filename], FDvec, stdev_temp_filename, ...
-                    wb_command, 30);
-            else % exist('remove_outliers','var') == 1 && remove_outliers == 0;
-                disp('Motion censoring performed on FD alone. Frames with outliers in BOLD std dev not removed');
-            end
+            
+            FDvec = remove_outliers_if(remove_outliers, FDvec, ...
+                [input_directory orig_cifti_filename], ...
+                stdev_temp_filename, wb_command, 30);
         end
         
         % Assign variables for minutes limit calculation
@@ -348,8 +335,8 @@ if make_dconn_conc
      dconn_paths_all_frames_at_thresh_min_lim, ...
      subjectswithoutenoughdata] = sort_paths(A, motion_file_obj, ...
         FD_threshold, hashes, minutes_limit, motion_file, no_output, ...
-        output_directory, smoothing, stdev, suffix2, TR, wb_command, ...
-        additional_mask);
+        output_directory, remove_outliers, smoothing, stdev, suffix2, ...
+        TR, wb_command, additional_mask);
     
     %% Save all of those paths into .conc files
     finish_and_save_concs(A, FD_threshold, minutes_limit, ...
@@ -439,6 +426,7 @@ function [A_smoothed_i, outfile] = minutes_limit_calculation(...
     else
        min_cmd_motion = [min_cmd_part 'FD_' num2str(FD_threshold)];
     end
+    
     if strcmpi(smoothing_kernel,'none')
         outfile = [char(output_dir) char(orig_cifti_filename) min_cmd_motion '_' hash '.' suffix2];
         A_smoothed_i = 'none';
@@ -453,6 +441,7 @@ function [A_smoothed_i, outfile] = minutes_limit_calculation(...
             disp('Smoothed series already created for this subject')
         end
     end
+    
     if matrix_not_already_exist(outfile) % check to see if the file already exists
         if strcmpi(smoothing_kernel,'none')
             if ~exist('weights', 'var')
@@ -474,8 +463,8 @@ end
 
 function [all_frames, at_thresh, at_thr_min_lim, without] = sort_paths(...
         A, B, FD_threshold, hashes, minutes_limit, motion_file, ...
-        no_output, output_directory, smoothed, stdev_temp_filename, ...
-        suffix2, TR, wb_command, additional_mask)
+        no_output, output_directory, remove_outliers, smoothed, ...
+        stdev_temp_filename, suffix2, TR, wb_command, additional_mask)
     % Build and return 4 lists of paths to connectivity matrix files, such
     % that each list contains matrices with a certain amount of data 
     % compared to the minutes_limit and FD_threshold:
@@ -500,7 +489,7 @@ function [all_frames, at_thresh, at_thr_min_lim, without] = sort_paths(...
             FDvec = get_FDvec(B{i}, FD_threshold);
             FDvec = additional_frame_removal(additional_mask, FDvec, ...
                         input_directory, orig_cifti_filename, ...
-                        stdev_temp_filename, wb_command);
+                        remove_outliers, stdev_temp_filename, wb_command);
             
             [at_thresh, at_thr_min_lim, without] = collect_conns( ...
                 A_dir, suffix2, FD_threshold, FDvec, hash, ...
@@ -511,23 +500,18 @@ end
 
 
 function FDvec = additional_frame_removal(additional_mask, FDvec, ...
-    input_directory, orig_cifti_filename, stdev_temp_filename, wb_command)
+    input_directory, orig_cifti_filename, remove_outliers, ...
+    stdev_temp_filename, wb_command)
     % additional frame removal depending on additional_mask
-    if strcmpi(additional_mask, 'none')==1
+    if strcmpi(additional_mask, 'none')
         FDvec = remove_frames_from_FDvec([input_directory ...
                 orig_cifti_filename], FDvec, ...
             stdev_temp_filename, wb_command, 30);
     else
         FDvec = add_mask_to_FDvec(FDvec, additional_mask);
-        if exist('remove_outliers','var') == 0 || remove_outliers == 1
-            disp('Removal outliers not specified.  It will be performed by default.')
-            FDvec = remove_frames_from_FDvec([input_directory ...
-                orig_cifti_filename], FDvec, ...
-                stdev_temp_filename, wb_command, 30);
-            
-        elseif exist('remove_outliers','var') == 1 && remove_outliers == 0
-            disp('Motion censoring performed on FD alone. Frames with outliers in BOLD std dev not removed');
-        end
+        FDvec = remove_outliers_if(remove_outliers, FDvec, ...
+            [input_directory orig_cifti_filename], ...
+            stdev_temp_filename, wb_command, 30);
     end
 end
 
@@ -542,6 +526,21 @@ function FDvec = get_FDvec(B_i, fd)
     FDidx = find(allFD == fd);
     FDvec = motion_data{FDidx}.frame_removal;
     FDvec = abs(FDvec-1);
+end
+
+
+function FDvec = remove_outliers_if(remove_outliers, FDvec, filename, ...
+    stdev_temp_filename, wb_command, wait)
+    % Remove outliers from external mask if user said to; otherwise pass
+    if remove_outliers 
+        disp('Removing outliers using .dtseries file...')
+        FDvec = remove_frames_from_FDvec(filename, ...
+            FDvec, stdev_temp_filename, wb_command, wait);   
+        
+    else  % exist('remove_outliers','var') == 1 && remove_outliers == 0;
+        disp(['Motion censoring performed on FD alone. '...
+              'Frames with outliers in BOLD std dev not removed']);
+    end
 end
 
 
@@ -570,16 +569,16 @@ function [at_thresh, at_thresh_min_lim, without] = collect_conns( ...
     % Get the names of connectivity matrices which meet FD threshold or 
     % lack enough subject data
     fd = num2str(FD_threshold);
-    if strcmpi(min_lim,'none')==1
+    if strcmpi(min_lim, 'none')==1
         at_thresh = [at_thresh; strcat({A_i}, '_all_frames_at_FD_', {fd}, '_', hash, '.', {ext})];
     else
         good_frames_idx = find(FDvec == 1);
         good_minutes = (length(good_frames_idx)*TR)/60;
         if good_minutes < 0.5
             without = [without; strcat({A_i}, '_lessthan30sec_', {fd}, '_', hash, '.', {ext})];
-        elseif min_lim > good_minutes
+        elseif good_minutes < min_lim
             at_thresh = [at_thresh; strcat({A_i}, '_all_frames_at_FD_', {fd}, '_', hash, '.', {ext})];
-        elseif min_lim <= good_minutes
+        elseif good_minutes >= min_lim
             at_thresh_min_lim = [at_thresh_min_lim; strcat({A_i}, '_', {num2str(min_lim)}, '_minutes_of_data_at_FD_', {fd}, '_', hash, '.', {ext})];
         else
             disp('something is wrong generating conc files')
@@ -638,6 +637,7 @@ function conc_path = get_conc_path(series_path, p_or_d, FD_threshold, ...
     else
         min = '_all_frames_at_FD_';
     end
+    
     if strcmpi(motion, 'none')==1
         conc_extra = [min motion];
     else

@@ -4,7 +4,7 @@
 CIFTI connectivity wrapper
 Greg Conan: conan@ohsu.edu
 Created 2019-06-18
-Last Updated 2019-11-12
+Last Updated 2019-11-13
 """
 
 ##################################
@@ -36,12 +36,13 @@ import sys
 CHOICES_TO_RUN = ["cifti_conn_matrix", "cifti_conn_template",
                   "cifti_conn_pairwise_corr"]
 
-# Default directories for input data, output data, and wrapped scripts (src)
+# Get path to directory containing this file
 try:
     PWD = os.path.dirname(os.path.abspath(__file__))
-    assert os.access(os.path.join(PWD, "cifti_conn_wrapper.py"), os.R_OK)
 except (OSError, AssertionError):
     PWD = os.getcwd()
+
+# Default directories for input data, output data, and wrapped scripts (src)
 DEFAULT_INPUT = os.path.join(PWD, "raw")
 DEFAULT_OUTPUT = os.path.join(PWD, "data")
 DEFAULT_SOURCE = os.path.join(PWD, "src")
@@ -77,7 +78,6 @@ WB_RUSHMORE = "/mnt/max/software/workbench/bin_linux64/wb_command"
 
 
 def main():
-
     cli_args = get_cli_args()
 
     def print_timestamp_when(completion, step):
@@ -381,9 +381,9 @@ def validate_cli_args(cli_args, parser):
         if cli_args.time_series == "dtseries":
             cli_args.dtseries = cli_args.series_file
         else:
-            dtseries_file = cli_args.series_file.replace("dts", "pts")
-            if "pts" in cli_args.series_file:
-                cli_args.dtseries = dtseries_file
+            dtseries = cli_args.series_file.replace("ptseries", "dtseries")
+            if "ptseries" in cli_args.series_file:
+                cli_args.dtseries = dtseries
             else:
                 parser.error("Cannot find dtseries file. Please enter the "
                              "path to an existing .conc file as the "

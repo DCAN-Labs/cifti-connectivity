@@ -167,6 +167,7 @@ else
         end
     end
     disp('All left surface files for smoothing exist continuing ...')
+    
     for i = 1:length(D)
         if exist(D{i}) == 0
             NOTE = ['Subject right surface ' num2str(i) ' does not exist']

@@ -427,34 +427,206 @@ def validate_cli_args(cli_args, parser):
     cli_args.mre_dir = validate_and_get_mre_dir(cli_args.mre_dir, parser)
     cli_args.template = validate_and_get_template(cli_args)
 
-    """
     # Validate that all .conc file inputs have an equal number of lines
-    validate_concs_same_length(cli_args, [k for k, v in vars(cli_args).items()
-                                          if isinstance(v, str) 
-                                          and v[-5:] == ".conc"])
-    """
+    validate_concs_same_length([k for k, v in vars(cli_args).items()
+                                if isinstance(v, str) and v[-5:] == ".conc"],
+                               cli_args, parser)
     return cli_args
 
 
-"""
-def count_lines_in_files(cli_args, conc_file_args):
-    
+def validate_and_get_input_dir(cli_args, parser):
+    """
+    Validate the directory containing all connectivity scripts and files
     :param cli_args: argparse namespace with all command-line arguments
-    :param conc_file_args:
+    :param parser: argparse ArgumentParser to raise error if invalid dir path
+    :return: Path to valid input directory as a string
+    """
+    # If an input directory path is invalid, infer one from time series file
+    if not cli_args.input:
+        try:
+            return format_with_trailing_slash(readable_dir(os.path.dirname(
+                cli_args.series_file)))
+
+        # If the input directory cannot be inferred from the series file, then
+        # raise a parser error
+        except (OSError, AssertionError):
+            err_msg = ("--input argument {} is not a readable directory."
+                       .format(input_dir))
+            if not os.access(cli_args.series_file, os.R_OK):
+                err_msg = ("{} This is because the time series file {} cannot "
+                           "be read.".format(err_msg, cli_args.series_file))
+            parser.error(err_msg)
+
+
+def format_with_trailing_slash(path):
+    """
+    :param path: String representing a file path
+    :return: path, but with one "/" at the end
+    """
+    return path if path[-1] == "/" else path + "/"
+
+
+def validate_and_get_output_dir(output, parser):
+    """
+    Validate that output directory exists and is writeable, or create one, and
+    then return valid path to that output directory
+    :param output: String representing file path of output directory to check
+    :param parser: argparse.ArgumentParser to raise error if path is invalid
+    :return: Valid path to output directory
+    """
+    try:  
+        # Output must be a directory, not a file
+        if os.path.isfile(output):  
+            raise OSError()
+        else:
+            os.makedirs(os.path.abspath(output), exist_ok=True)
+
+        # Output must be writeable and formatted with a trailing slash
+        assert os.access(output, os.W_OK)
+        return format_with_trailing_slash(output)
+
+    except (OSError, TypeError):
+        parser.error("Cannot make output folder at " + output)
+    except AssertionError:
+        parser.error("Cannot write to output folder at " + output)
+
+
+def warn_user_about_dconn_size(cli_args):
+    """
+    If the size of all of the .dconn files exceeds a certain threshold, then
+    tell the user and make the user approve of .dconn creation to continue
+    :param cli_args: argparse namespace with all command-line arguments
     :return: N/A
+    """
+    # Open series file again to count its lines
+    with open(cli_args.series_file, "r") as series_file:
+
+        # Figure out how many .dconn files to make (1 per line in series file,
+        # but only 1 if .dconn files are deleted after being added to the 
+        # rolling average)
+        number_of_dconns_to_make = 1
+        if (cli_args.keep_conn_matrices == "1" or not
+                will_delete_conn_matrices_later(cli_args)):
+            while series_file.readline():
+                number_of_dconns_to_make += 1
+
+    # Calculate how many gigabytes each .dconn file will be
+    gb_per_dconn = 8 if cli_args.beta8 == "1" else 33
+    gb_of_files_created = number_of_dconns_to_make * gb_per_dconn
+
+    # Warn user and ask for confirmation if file size exceeds threshold
+    if gb_of_files_created > WARNING_IF_DCONN_SIZE_EXCEEDS:
+        check = "y"
+        while check.lower() != "y":
+            check = input(
+                "Warning: This will create about {} GB of .dconn files. Enter "
+                "'y' to continue or 'n' to quit: ".format(gb_of_files_created)
+            )
+            if check.lower() == "n":
+                sys.exit(1)
+
+
+def will_delete_conn_matrices_later(cli_args):
+    """
+    Checks whether this wrapper should keep connectivity matrices until done
+    running cifti_conn_pairwise corr and then delete them afterwards.
+    :param cli_args: argparse namespace with all command-line arguments
+    :return: True if user said not to keep connectivity matrices even though
+    they are needed to run cifti_conn_pairwise_corr, and False otherwise.
+    """
+    return (cli_args.keep_conn_matrices == "0"
+            and CHOICES_TO_RUN[2] in cli_args.scripts)
+
+
+def get_valid_series_type(cli_args, parser):
+    """
+    Infer whether series_file is dense or parcellated by reading series_file
+    provided by user. Raise a parser error if the series_file is neither or is
+    otherwise invalid.
+    :param cli_args: argparse namespace with all command-line arguments
+    :param parser: argparse ArgumentParser to raise error if anything's invalid
+    :return: "dtseries" or "ptseries"
+    """
+    try:
+        if cli_args.series_file[-11:] == "tseries.nii":
+            time_series = cli_args.series_file[-12:-4]
+        else:
+            with open(cli_args.series_file, "r") as series_file:
+                time_series = series_file.readline().split(".")[-2]
+
+        # If size of .dconn files to make exceeds threshold, then warn user
+        if time_series == "dtseries":
+            if ((not cli_args.suppress_warnings) and
+                    (CHOICES_TO_RUN[0] in cli_args.scripts or
+                     CHOICES_TO_RUN[1] in cli_args.scripts)):
+                warn_user_about_dconn_size(cli_args)
+
+        # If invalid time series is given, then tell user and crash
+        elif time_series != "ptseries":
+            parser.error("Time series file must contain only a list of "
+                         ".ptseries.nii or .dtseries.nii file paths.")
+    except OSError:
+        parser.error("Could not read time series file paths from "
+                     + cli_args.series_file)
+    except IndexError:
+        parser.error("Series file must be a path to a .dtseries.nii file or "
+                     "to a .ptseries.nii file, or a path to a .conc file "
+                     "which only has a list of paths to those .nii files.")
+    return time_series
     
-    prev_file_lines = -1
-    for conc_arg in conc_file_args:
-        with open(getattr(cli_args, conc_arg)) as conc_file:
-            lines = 0
-            lines = [lines += 1 for line in conc_file]
-        if prev_file_lines == -1:
-            prev_file_lines = lines
-        elif prev_file_lines != lines:
-            raise argparse.ArgumentTypeError("Error: Some .conc files have a "
-                                             "different numbers of lines.")
-"""
- 
+
+def get_valid_wb_command():
+    """
+    Try to find a valid workbench command file by checking the BASH path, by
+    checking default locations on known servers, or finally by asking the user
+    :return: String representing a valid path to the wb_command file
+    """
+    # If wb_command is already in BASH PATH, then get it and format it properly
+    try:
+        wb_command = str(subprocess.check_output((
+            "which", "wb_command"
+        )).decode("utf-8").strip())
+
+    # Otherwise, use hardcoded wb_command depending on host server, or get
+    # wb_command from user if host server is not known
+    except subprocess.CalledProcessError:
+
+        # If host server is RUSHMORE or EXACLOUD, then get its wb_command
+        host = gethostname()
+        if host == "rushmore":
+            wb_command = WB_RUSHMORE
+        elif "exa" in host:
+            wb_command = WB_EXACLOUD
+
+        # If on an unknown host, either quit if user says to, or get wb_command
+        # from user and validate it
+        else:
+            print("No workbench command found on {}.".format(host))
+            while not os.access(wb_command, os.R_OK):
+                wb_command = input("Please enter a valid path to a workbench "
+                                   "command, or 'q' to end the program: ")
+                if wb_command == "q":
+                    sys.exit(1)
+
+    return readable_file(wb_command)
+
+
+def validate_and_get_dtseries(cli_args, parser):
+    """
+    Validate the path to
+    :param cli_args: argparse namespace with all command-line arguments
+    :param parser: argparse ArgumentParser to raise error if invalid dir path
+    :return: Path to valid .dtseries.nii file as a string, or the "none" string
+    """
+    if cli_args.remove_outliers != "1":
+        dtseries = "none"
+    elif not cli_args.dtseries:
+        if cli_args.time_series == "dtseries":
+            dtseries = cli_args.series_file
+        else:
+            dtseries = cli_args.series_file.replace("ptseries", "dtseries")
+    return readable_file_or_none(dtseries)
+
 
 def validate_and_get_mre_dir(path, parser):
     """
@@ -505,224 +677,6 @@ def validate_and_get_template(cli_args):
     return template
 
 
-def get_valid_series_type(cli_args, parser):
-    """
-    Infer whether series_file is dense or parcellated by reading series_file
-    provided by user. Raise a parser error if the series_file is neither or is
-    otherwise invalid.
-    :param cli_args: argparse namespace with all command-line arguments
-    :param parser: argparse ArgumentParser to raise error if anything's invalid
-    :return: "dtseries" or "ptseries"
-    """
-    try:
-        if cli_args.series_file[-11:] == "tseries.nii":
-            time_series = cli_args.series_file[-12:-4]
-        else:
-            with open(cli_args.series_file, "r") as series_file:
-                time_series = series_file.readline().split(".")[-2]
-
-        # If size of .dconn files to make exceeds threshold, then warn user
-        if time_series == "dtseries":
-            if ((not cli_args.suppress_warnings) and
-                    (CHOICES_TO_RUN[0] in cli_args.scripts or
-                     CHOICES_TO_RUN[1] in cli_args.scripts)):
-                warn_user_about_dconn_size(cli_args)
-
-        # If invalid time series is given, then tell user and crash
-        elif time_series != "ptseries":
-            parser.error("Time series file must contain only a list of "
-                         ".ptseries.nii or .dtseries.nii file paths.")
-    except OSError:
-        parser.error("Could not read time series file paths from "
-                     + cli_args.series_file)
-    except IndexError:
-        parser.error("Series file must be a path to a .dtseries.nii file or "
-                     "to a .ptseries.nii file, or a path to a .conc file "
-                     "which only has a list of paths to those .nii files.")
-
-    return time_series
-    
-
-def will_make_conn_conc(cli_args):
-    """
-    Check whether this wrapper will actually make a conn_matries .conc file
-    :param cli_args: argparse namespace with all command-line arguments
-    :return: True if this wrapper will create a .conc file with a list of
-    connectivity matrices made by the wrapper, and False otherwise.
-    """
-    return ((CHOICES_TO_RUN[0] in cli_args.scripts or CHOICES_TO_RUN[1]
-             in cli_args.scripts) and cli_args.make_conn_conc == "1")
-
-
-def validate_and_get_input_dir(cli_args, parser):
-    """
-    Validate the directory containing all connectivity scripts and files
-    :param cli_args: argparse namespace with all command-line arguments
-    :param parser: argparse ArgumentParser to raise error if invalid dir path
-    :return: Path to valid input directory as a string
-    """
-    # If an input directory path is invalid, infer one from time series file
-    if not cli_args.input:
-        try:
-            return format_with_trailing_slash(readable_dir(os.path.dirname(
-                cli_args.series_file)))
-
-        # If the input directory cannot be inferred from the series file, then
-        # raise a parser error
-        except (OSError, AssertionError):
-            err_msg = ("--input argument {} is not a readable directory."
-                       .format(input_dir))
-            if not os.access(cli_args.series_file, os.R_OK):
-                err_msg = ("{} This is because the time series file {} cannot "
-                           "be read.".format(err_msg, cli_args.series_file))
-            parser.error(err_msg)
-
-
-def validate_and_get_output_dir(output, parser):
-    """
-    Validate that output directory exists and is writeable, or create one, and
-    then return valid path to that output directory
-    :param output: String representing file path of output directory to check
-    :param parser: argparse.ArgumentParser to raise error if path is invalid
-    :return: Valid path to output directory
-    """
-    try:  
-        # Output must be a directory, not a file
-        if os.path.isfile(output):  
-            raise OSError()
-        else:
-            os.makedirs(os.path.abspath(output), exist_ok=True)
-
-        # Output must be writeable and formatted with a trailing slash
-        assert os.access(output, os.W_OK)
-        return format_with_trailing_slash(output)
-
-    except (OSError, TypeError):
-        parser.error("Cannot make output folder at " + output)
-    except AssertionError:
-        parser.error("Cannot write to output folder at " + output)
-
-
-def format_with_trailing_slash(path):
-    """
-    :param path: String representing a file path
-    :return: path, but with one "/" at the end
-    """
-    return path if path[-1] == "/" else path + "/"
-
-
-def validate_and_get_dtseries(cli_args, parser):
-    """
-    Validate the path to
-    :param cli_args: argparse namespace with all command-line arguments
-    :param parser: argparse ArgumentParser to raise error if invalid dir path
-    :return: Path to valid .dtseries.nii file as a string, or the "none" string
-    """
-    if cli_args.remove_outliers != "1":
-        dtseries = "none"
-    elif not cli_args.dtseries:
-        if cli_args.time_series == "dtseries":
-            dtseries = cli_args.series_file
-        else:
-            dtseries = cli_args.series_file.replace("ptseries", "dtseries")
-    return readable_file_or_none(dtseries)
-
-
-def warn_user_about_dconn_size(cli_args):
-    """
-    If the size of all of the .dconn files exceeds a certain threshold, then
-    tell the user and make the user approve of .dconn creation to continue
-    :param cli_args: argparse namespace with all command-line arguments
-    :return: N/A
-    """
-    # Open series file again to count its lines
-    with open(cli_args.series_file, "r") as series_file:
-
-        # Figure out how many .dconn files to make (1 per line in series file,
-        # but only 1 if .dconn files are deleted after being added to the 
-        # rolling average)
-        number_of_dconns_to_make = 1
-        if (cli_args.keep_conn_matrices == "1" or not
-                will_delete_conn_matrices_later(cli_args)):
-            while series_file.readline():
-                number_of_dconns_to_make += 1
-
-    # Calculate how many gigabytes each .dconn file will be
-    gb_per_dconn = 8 if cli_args.beta8 == "1" else 33
-    gb_of_files_created = number_of_dconns_to_make * gb_per_dconn
-
-    # Warn user and ask for confirmation if file size exceeds threshold
-    if gb_of_files_created > WARNING_IF_DCONN_SIZE_EXCEEDS:
-        check = "y"
-        while check.lower() != "y":
-            check = input(
-                "Warning: This will create about {} GB of .dconn files. Enter "
-                "'y' to continue or 'n' to quit: ".format(gb_of_files_created)
-            )
-            if check.lower() == "n":
-                sys.exit(1)
-
-
-def get_matrices_concname(cli_args):
-    """
-    Build and return path to .conc file with list of connectivity matrices
-    :param cli_args: argparse namespace with all command-line arguments
-    :return: String representing the path to the conn matrices list .conc file
-    """
-    return "".join((
-        cli_args.output,  # Output directory
-
-        # Base name of series_file
-        os.path.splitext(os.path.basename(cli_args.series_file))[0],
-
-        # Reformatted time series string
-        "_{0}conn_of_{0}tseries".format(cli_args.time_series[0]),
-
-        # Conn matrices list filename parts about FD threshold & minutes limit
-        (("_{}_minutes_of_data_at_FD_{}".format(cli_args.minutes, cli_args.fd))
-          if cli_args.minutes != "none" else "_all_frames_at_FD_{}".format(
-          cli_args.fd)),
-
-        ".conc"  # File extension
-    ))
-
-
-def get_valid_wb_command():
-    """
-    Try to find a valid workbench command file by checking the BASH path, by
-    checking default locations on known servers, or finally by asking the user
-    :return: String representing a valid path to the wb_command file
-    """
-    # If wb_command is already in BASH PATH, then get it and format it properly
-    try:
-        wb_command = str(subprocess.check_output((
-            "which", "wb_command"
-        )).decode("utf-8").strip())
-
-    # Otherwise, use hardcoded wb_command depending on host server, or get
-    # wb_command from user if host server is not known
-    except subprocess.CalledProcessError:
-
-        # If host server is RUSHMORE or EXACLOUD, then get its wb_command
-        host = gethostname()
-        if host == "rushmore":
-            wb_command = WB_RUSHMORE
-        elif "exa" in host:
-            wb_command = WB_EXACLOUD
-
-        # If on an unknown host, either quit if user says to, or get wb_command
-        # from user and validate it
-        else:
-            print("No workbench command found on {}.".format(host))
-            while not os.access(wb_command, os.R_OK):
-                wb_command = input("Please enter a valid path to a workbench "
-                                   "command, or 'q' to end the program: ")
-                if wb_command == "q":
-                    sys.exit(1)
-
-    return readable_file(wb_command)
-
-
 def get_template_file_path(cli_args):
     """
     Build and return the name of the file created by cifti_conn_template
@@ -748,6 +702,35 @@ def get_template_file_path(cli_args):
                     motion_and_smooth, cli_args.smoothing_kernel, '_AVG.',
                     cli_args.time_series[0], "conn.nii"))
 
+
+def validate_concs_same_length(conc_file_args, cli_args, parser):
+    """
+    Throw argparse error unless all .conc files have the same number of lines
+    :param conc_file_args: List of names of arguments in cli_args which are
+    :param cli_args: argparse namespace with all command-line arguments
+    :param parser: argparse ArgumentParser to raise error if anything's invalid
+    valid paths to .conc files which each contain a list of file paths
+    :return: N/A
+    """
+    # Get the line number of every .conc file
+    prev_file_lines = -1
+    for conc_arg in conc_file_args:
+        conc_path = getattr(cli_args, conc_arg)
+        with open(conc_path) as conc_file:
+            lines = 0
+            for line in conc_file:
+                lines += 1
+
+        # If each file has the same number of lines as the previous one, then
+        # keep checking; otherwise raise a parser error
+        if prev_file_lines == -1 or lines == prev_file_lines:
+            prev_file_lines = lines
+            prev_conc = conc_path
+        else:
+            parser.error("These .conc files have different numbers of lines:\n"
+                         "{}\n{}\n\nPlease use .conc files which all have the "
+                         "same number of lines.".format(prev_conc, conc_path))
+                
 
 def get_conc_file_paths(cli_args):
     """
@@ -802,18 +785,6 @@ def get_matrix_or_template_parameters(cli_args):
         cli_args.output,
         cli_args.dtseries
     ])
-
-
-def will_delete_conn_matrices_later(cli_args):
-    """
-    Checks whether this wrapper should keep connectivity matrices until done
-    running cifti_conn_pairwise corr and then delete them afterwards.
-    :param cli_args: argparse namespace with all command-line arguments
-    :return: True if user said not to keep connectivity matrices even though
-    they are needed to run cifti_conn_pairwise_corr, and False otherwise.
-    """
-    return (cli_args.keep_conn_matrices == "0"
-            and CHOICES_TO_RUN[2] in cli_args.scripts)
 
 
 def cifti_conn_matrix(cli_args):

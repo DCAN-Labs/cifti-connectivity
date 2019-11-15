@@ -22,7 +22,7 @@ Any of the three matrix, template, or pairwise-corr functions can be completed b
 
 ### Required Positional Arguments
  
-1. `series-file` is one argument, a path to the dense timeseries (`dtseries`) or parcellated timeseries (`ptseries`) `.conc` file. A `.conc` file is a text file with paths to each file being examined.
+1. `series-file` is one argument, a path to the dense timeseries (`dtseries`) or parcellated timeseries (`ptseries`) `.conc` file. A `.conc` file is a text file with paths to each file being examined. Every `.conc` file given must have the same number of lines, because each line number in each `.conc` file is assumed to correspond to the same line number in all of the other `.conc` files.
 2. `tr` takes the repetition time (time interval between frames of a scan) for your data as a floating-point number.
 3. `output` takes a path to the directory which will be filled with output data.
 4. `scripts-to-run` is one or more argument(s), the name(s) of each script that you want to run.

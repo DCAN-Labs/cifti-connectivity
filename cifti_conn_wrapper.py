@@ -768,6 +768,7 @@ def get_matrix_or_template_parameters(cli_args):
     :return: A list of all parameters required by matrix and template scripts.
     """
     return([
+        cli_args.mre_dir,
         cli_args.wb_command,
         cli_args.series_file,
         cli_args.time_series,
@@ -794,9 +795,10 @@ def cifti_conn_matrix(cli_args):
     :param cli_args: argparse namespace with all command-line arguments
     :return: N/A
     """
-    subprocess.check_call([os.path.join(DEFAULT_SOURCE, SCRIPT_MATRIX),
-                           cli_args.mre_dir]
-                          + get_matrix_or_template_parameters(cli_args))
+    subprocess.check_call((
+        os.path.join(DEFAULT_SOURCE, SCRIPT_MATRIX),
+        *get_matrix_or_template_parameters(cli_args)
+    ))
 
 
 def cifti_conn_template(cli_args):
@@ -816,7 +818,6 @@ def cifti_conn_template(cli_args):
     # Call cifti_conn_template script
     subprocess.check_call((
         os.path.join(DEFAULT_SOURCE, SCRIPT_TEMPLATE),
-        cli_args.mre_dir,
         *get_matrix_or_template_parameters(cli_args),
         keep_conn_matrices,
         cli_args.template

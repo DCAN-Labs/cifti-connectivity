@@ -53,20 +53,17 @@ if isnumeric(bit8)
 else
     bit8 = str2num(bit8);
 end
-
 if exist('remove_outliers', 'var')
     if ~isnumeric(remove_outliers)
         remove_outliers = str2num(remove_outliers);
     end
 end
-
 if strcmpi(smoothing_kernel, 'none')
     smoothing_kernel = 'none';
 elseif isnumeric(smoothing_kernel)
 else
     smoothing_kernel = str2num(smoothing_kernel);
 end
-
 if (~strcmpi(smoothing_kernel, 'none')) && (strcmpi(series, 'ptseries'))
     disp('Check your settings. Smoothing not allowed on ptseries.');
     return
@@ -120,13 +117,13 @@ if strcmpi(motion_file, 'none') % run this if no motion censoring
     disp('No motion files, will use all frames to generate matrices')
     for i = 1:length(A)
         [orig_cifti_filename, input_directory, ...
-            folders] = get_folder_params(A{i}, filesep);
+            ~] = get_folder_params(A{i}, filesep);
         if no_output
             output_directory =char(input_directory);
         end
        
         % Run minutes limit calculation
-        hash = get_hash(folders);
+        hash = get_hash(A, i);
         hashes{i} = hash;
         if strcmpi(smoothing_kernel, 'none')
             left = 'none';
@@ -176,8 +173,8 @@ else % use motion censoring
         
         % Get input folder parameters and make hash
         [orig_cifti_filename, input_directory, ...
-            folders] = get_folder_params(A{i}, filesep);
-        hash = get_hash(folders);
+            ~] = get_folder_params(A{i}, filesep);
+        hash = get_hash(A, i);
         hashes{i} = hash;
         if no_output
             output_directory = char(input_directory);
@@ -357,17 +354,23 @@ function [cifti, in_dir, folders] = get_folder_params(A_i, sep)
 end
 
 
-function hash = get_hash(folders)
-    % Return a string composed of the first character in every element of
-    % the 'folders' array except the last element, which has its first 5 
-    % characters at the end. This consistently but uniquely identifies
-    % each file based on its original location and ID.
-    folders_len = length(folders)-2;
-    hash = blanks(folders_len);
-    for d=1:folders_len
-        hash(1, d) = folders{d+1}(1);
+function hash = get_hash(all_paths, i)
+    % Return a 5-or-fewer-character vector uniquely identifying
+    % all_paths{i}, where the vector is determined by all_paths{i-1:i}
+    hash = '00001'; % Hash for first .pconn 
+    if i > 1
+        shared_len = min([length(all_paths{i}); length(all_paths{i-1})]);
+        this_path = all_paths{i}(1:shared_len);
+        prev_path = all_paths{i-1}(1:shared_len);
+        differences = find(this_path ~= prev_path);
+        if length(differences) > 5
+            differences = differences(1:5);
+        end
+        hash = blanks(length(differences));
+        for ix=1:length(differences)
+            hash(ix) = this_path(differences(ix));
+        end
     end
-    hash = [hash folders{end}(1:5)];
 end
 
 
@@ -416,7 +419,6 @@ function [A_smoothed_i, outfile] = minutes_limit_calculation(...
             disp('Smoothed series already created for this subject')
         end
     end
-    
     if ~exist(outfile, 'file') % check to see if the file already exists
         if strcmpi(smoothing, 'none')
             if ~exist('weights', 'var')
@@ -479,7 +481,6 @@ function [all_frames, at_thresh, at_thr_min_lim, without] = sort_paths(...
             FDvec = additional_frame_removal(mask, dt, FDvec, ...
                         input_directory, orig_cifti_filename, ...
                         remove_outliers, stdev_temp_filename, wb_command);
-            
             [at_thresh, at_thr_min_lim, without] = collect_conns( ...
                 A_dir, suffix2, FD_threshold, FDvec, hashes{i}, ...
                 minutes_limit, TR, at_thresh, at_thr_min_lim, without);
@@ -655,7 +656,7 @@ function make_conn_conc(concname, paths)
     paths = paths{1};
     if ~isempty(paths)
         concname = char(concname);
-        fileID = fopen(concname,'w');
+        fileID = fopen(concname, 'w');
         [nrows, ~] = size(paths);
         for row = 1:nrows
             fprintf(fileID, '%s\n', char(paths{row}));

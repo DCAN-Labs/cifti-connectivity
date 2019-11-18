@@ -11,14 +11,12 @@ Clone this repository and save it somewhere on the Linux system that you want to
 - [MathWorks MATLAB Runtime Environment (MRE) version 9.1 (2016b)](https://www.mathworks.com/products/compiler/matlab-runtime.html)
 - [Washington University Workbench Command (wb_command)](https://github.com/Washington-University/workbench)
   
-## Purpose
-- Run `cifti_conn_matrix` on your dtseries or ptseries to generate a correlation matrix (in Fischer Z by default) or all the greyordinates/parcellations to all other greyordinate/parcellations.
-- Run `cifti_conn_template` to build a template connectivity matrix of a list of subjects. (It adds all the connectivity matrices one by one, then divides by the number of subjects.)
-- Run `cifti_conn_pairwise_corr` to generate a correlation of correlation martices.  This compares the connectivity matrix of each individual to the template, and provides a vector where each element is the correlation of connectivity to that greyorindate/parcellation.
+## Modes
+- Run `cifti_conn_matrix` on your dtseries or ptseries to generate a correlation matrix (in Fisher-Z by default) or all the greyordinates/parcellations to all other greyordinate/parcellations.
+- Run `cifti_conn_template` to build a template connectivity matrix of a list of subjects. It adds all the connectivity matrices one by one, then divides by the number of subjects.
+- Run `cifti_conn_pairwise_corr` to generate a correlation of correlation martices. This compares the connectivity matrix of each individual to the template, and provides a vector where each element is the correlation of connectivity to that greyorindate/parcellation.
 
-## Usage
-
-Any of the three matrix, template, or pairwise-corr functions can be completed by running `cifti_conn_wrapper.py` from within the directory cloned from this repo. `cifti_conn_wrapper.py` requires three positional arguments and can take many optional arguments. 
+Any of the three matrix, template, or pairwise-corr functions can be completed by running `cifti_conn_wrapper.py` from within the directory cloned from this repo. `cifti_conn_wrapper.py` requires four positional arguments and can take many optional arguments. 
 
 ### Required Positional Arguments
  
@@ -29,15 +27,17 @@ Any of the three matrix, template, or pairwise-corr functions can be completed b
 
 Those arguments must be given in that order: `series-file` first, `tr` second, `output` third, and `scripts-to-run` last. For example, here is a valid basic call of this wrapper:
 ```
-python3 cifti_conn_wrapper.py ./raw/group_ptseries.conc 2.5 matrix ./data/
+python3 cifti_conn_wrapper.py ./raw/group_ptseries.conc 2.5 ./data/ matrix
 ```
-
+ 
 This wrapper can run any combination of the three scripts in any order. To run multiple scripts, list all of their names in the order that you want the wrapper to run them. Here is an example call which will run all three scripts in order:
 ```
 python3 cifti_conn_wrapper.py ./raw/group_ptseries.conc 2.5 ./data/ matrix template pairwise_corr
 ```
 
 For more usage information, call this script with the `--help` command: `python3 cifti_conn_wrapper.py --help`
+
+## General Options
 
 ### Server-Dependent Arguments
  

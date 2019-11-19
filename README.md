@@ -1,125 +1,186 @@
-# Connectivity Matrices 
+# Connectivity Matrices
 
-Scripts to generate correlation matrices from BOLD dense or parcellated time series data.
+Run `cifti_conn_wrapper.py` to generate correlation matrices from BOLD dense or parcellated time series data.
 
-## Installation
+## Prerequisites
+
+### Installation
 
 Clone this repository and save it somewhere on the Linux system that you want to use it from.
 
-## Dependencies
+### Dependencies
 - [Python v3.5.2](https://www.python.org/downloads/release/python-352) or greater
-- [MathWorks MATLAB Runtime Environment (MRE) version 9.1 (2016b)](https://www.mathworks.com/products/compiler/matlab-runtime.html)
-- [Washington University Workbench Command (wb_command)](https://github.com/Washington-University/workbench)
-  
-## Modes
-- Run `cifti_conn_matrix` on your dtseries or ptseries to generate a correlation matrix (in Fisher-Z by default) or all the greyordinates/parcellations to all other greyordinate/parcellations.
-- Run `cifti_conn_template` to build a template connectivity matrix of a list of subjects. It adds all the connectivity matrices one by one, then divides by the number of subjects.
-- Run `cifti_conn_pairwise_corr` to generate a correlation of correlation martices. This compares the connectivity matrix of each individual to the template, and provides a vector where each element is the correlation of connectivity to that greyorindate/parcellation.
+- MathWorks [MATLAB Runtime Environment (MRE) version 9.1 (2016b)](https://www.mathworks.com/products/compiler/matlab-runtime.html)
+- Washington University [Workbench Command (wb_command)](https://github.com/Washington-University/workbench)
 
-Any of the three matrix, template, or pairwise-corr functions can be completed by running `cifti_conn_wrapper.py` from within the directory cloned from this repo. `cifti_conn_wrapper.py` requires four positional arguments and can take many optional arguments. 
+### Requirements For `.conc` Files
+
+This wrapper uses `.conc` text files for several of its inputs. All of them should only contain valid file paths. Although relative paths can be used, they will only work when running the wrapper from the right directory, so using absolute paths is recommended. Each line of each `.conc` file should have one path and nothing else.  
+
+All `.conc` files used as input to this wrapper should have the same number of file paths, and therefore the same number of lines. That is required because the wrapper assumes that each path represents the same subject session as the path at the same line in every other input `.conc` file.
+
+None of the time series files listed in the `.conc` files should have exactly the same base file name. If any do, then the wrapper will overwrite one of their outputs with the other one's outputs.
+
+If you want to run this wrapper on only one subject session, you do not need to use a `.conc` file. Instead, you can use the file paths that would have gone into the `.conc` files directly. For example, you can use your `*.ptseries.nii` file path for the `series-file` argument, the `*power_2014_FD_only.mat` file for the `--motion` argument, etc.
+
+### Expected Naming Convention for Input Imaging Data
+This wrapper processes dense (`dtseries`) or parcellated (`ptseries`) time series data. For dtseries, each subject session is expected to have one file following the naming convention `XXXXX_Atlas.dtseries.nii`. Smoothing will create an additional dtseries called `XXXX_Atlas_SMOOTHED.dtseries.nii`.
+
+## Usage
+
+### Modes
+
+- Run `matrix` mode on your `dtseries` or `ptseries` to generate a correlation matrix (in Fisher-Z by default) of all the greyordinates/parcellations to all other greyordinate/parcellations.
+
+- Run `template` mode to build an average template connectivity matrix of a list of subjects. It adds all the connectivity matrices one by one, then divides by the number of subjects.
+
+- Run `pairwise_corr` mode to make a correlation of correlation martices. This compares the connectivity matrix of each individual to the template, and provides a vector where each element is the correlation of connectivity to that greyorindate/parcellation.
+
+`cifti_conn_wrapper.py` can run any of these modes. It requires 4 positional arguments, and accepts many optional arguments. Each mode corresponds to one compiled MATLAB file in the `./src/` directory.
 
 ### Required Positional Arguments
- 
-1. `series-file` is one argument, a path to the dense timeseries (`dtseries`) or parcellated timeseries (`ptseries`) `.conc` file. A `.conc` file is a text file with paths to each file being examined. Every `.conc` file given must have the same number of lines, because each line number in each `.conc` file is assumed to correspond to the same line number in all of the other `.conc` files.
-2. `tr` takes the repetition time (time interval between frames of a scan) for your data as a floating-point number.
-3. `output` takes a path to the directory which will be filled with output data.
-4. `scripts-to-run` is one or more argument(s), the name(s) of each script that you want to run.
 
-Those arguments must be given in that order: `series-file` first, `tr` second, `output` third, and `scripts-to-run` last. For example, here is a valid basic call of this wrapper:
-```
-python3 cifti_conn_wrapper.py ./raw/group_ptseries.conc 2.5 ./data/ matrix
-```
- 
-This wrapper can run any combination of the three scripts in any order. To run multiple scripts, list all of their names in the order that you want the wrapper to run them. Here is an example call which will run all three scripts in order:
-```
-python3 cifti_conn_wrapper.py ./raw/group_ptseries.conc 2.5 ./data/ matrix template pairwise_corr
-```
+These arguments must be given in order:
+
+1. `series-file` takes one path to the `.conc` file with a list of paths to each dense (`dtseries`) or parcellated (`ptseries`) timeseries file.
+
+2. `tr` takes the repetition time (time interval between frames of a scan) for your data as a floating-point number.
+
+3. `output` takes a path to the directory which will be filled with output data.
+
+4. `scripts-to-run` takes one or more argument(s), the name(s) of each mode that you want to run.
 
 For more usage information, call this script with the `--help` command: `python3 cifti_conn_wrapper.py --help`
 
-## General Options
+### Examples
 
-### Server-Dependent Arguments
- 
-If these arguments are excluded, then by default the wrapper will use hardcoded paths which are only valid on the RUSHMORE or Exacloud servers. If this script is run on a different server or locally, then these arguments are required. However, if there is already a `wb_command` file in the user's BASH PATH variable, then the script will use that.
+#### Simplest Usage
 
-`--mre-dir` takes one argument, a valid path to the MRE compiler runtime directory. Example: `--mre-dir /usr/home/code/Matlab2016bRuntime/v91`
+Since only the four positional argument are technically required, this is a valid command:
+```
+python3.5 cifti_conn_wrapper.py ./raw/group_ptseries.conc 2.5 ./data/ matrix
+```
 
-`--wb-command` takes one argument, a valid path to the workbench command file. Example: `--wb-command /usr/local/home/wb_command`
+However, running with no optional arguments will not do any motion correction or smoothing. It will also include subject sessions with any amount of good data.
 
-### Optional Arguments: Run Modes
+#### Common Use Case
+
+Here is a common use case of the `cifti_conn_wrapper` in `matrix` mode:
+
+```
+python3.5 cifti_conn_wrapper.py --motion raw/round1_motion.conc --mre-dir /home/code/MATLAB_MCR/v91 --wb-command /home/code/workbench/bin_linux64/wb_command --minutes 4 --fd-threshold 0.3 /home/data/processed/round1_ptseries.conc 2.5 /home/data/processed matrix
+```
+
+This case includes the 4 required arguments, as well as the `fd-threshold`, `minutes`, `motion`, `mre-dir`, and `wb-command` optional arguments.
+
+#### Multiple Modes
+
+This wrapper can run any combination of the three modes in any order. To run multiple modes, list all of their names in the order that you want the wrapper to run them. Here is an example command which will run all three scripts in order:
+```
+python3.5 cifti_conn_wrapper.py ./raw/group_ptseries.conc 4 ./data/ matrix template pairwise_corr
+```
+
+## Options
+
+There are three kinds of options: Server-dependent flags used by all 3 run modes, flags used by `matrix` and `template` mode, and flags used by `template` and `pairwise_corr` mode.
+
+### Which Modes Use Which Flags
+
+|                        | matrix | template | pairwise_corr |
+|------------------------|:------:|:--------:|:-------------:|
+| `--mre-dir`            | Y      | Y        | Y             |
+| `--wb-command`         | Y      | Y        | Y             |
+| `--additional-mask`    | Y      | Y        |               |
+| `--beta8`              | Y      | Y        |               |
+| `--dtseries`           | Y      | Y        |               |
+| `--fd-threshold`       | Y      | Y        |               |
+| `--left` and `--right` | Y      | Y        |               |
+| `--make-conn-conc`     | Y      | Y        |               |
+| `--minutes`            | Y      | Y        |               |
+| `--motion`             | Y      | Y        |               |
+| `--remove-outliers`    | Y      | Y        |               |
+| `--smoothing-kernel`   | Y      | Y        |               |
+| `--suppress-warnings`  | Y      | Y        |               |
+| `--keep-conn-matrices` |        | Y        | Y             |
+| `--template`           |        | Y        | Y             |
+
+### Server-Dependent Arguments for All 3 Modes
+
+These arguments apply to all 3 run modes. If they are excluded, then by default the wrapper will use hardcoded paths which are only valid on the RUSHMORE or Exacloud servers. So these arguments are required if this script is run on a different server or locally. However, if there is already a `wb_command` file in the user's BASH PATH variable, then the script will use that.
+
+- `--mre-dir` takes one argument, a valid path to the MATLAB Runtime Environment directory. Example: `--mre-dir /usr/home/code/Matlab2016bRuntime/v91`
+
+- `--wb-command` takes one argument, a valid path to the workbench command file. Example: `--wb-command /usr/local/home/wb_command`
+
+### Optional Arguments for Modes Creating Matrix or Template
+
+These optional arguments apply only to the first 2 run modes, `matrix` and `template.`
+
+#### Numerical Value Flags
+
+- `--smoothing-kernel` takes the smoothing kernel as one floating-point number. Include this argument to use smoothing, but not otherwise. If the `series_file` has `ptseries` files, then smoothing will use the `--dtseries` argument. By default, the wrapper will not do smoothing.
+
+- `--minutes` takes the minutes limit as one floating-point number. The minutes limit is the minimum number of minutes of good data necessary for a subject session to be included in the correlation matrix. By default, the wrapper will have no minutes limit and make an `allframesbelowFDX` matrix. Subjects will have different numbers of time points that in each connectivity matrix.
+
+- `--fd-threshold` takes the motion threshold distinguishing good from bad data. This floating-point number is the maximum amount of acceptable motion between frames of a scan. Raising the FD threshold excludes more data by setting a more stringent quality requirement. The default value is `0.2`.
+
+#### Runtime Option Flags
 
 These arguments can be included without a value.
 
-`--make-conn-conc` will make a list of connectivity matrices created by this wrapper. By default, the wrapper will not make a list. Running the `pairwise_corr` script will only work if a list of connectivity matrices already exists. This wrapper can create a list by running the `matrix` or `template` script with the `--make-conn-conc` flag. It will automatically generate the `.conc` file name and save a file with that name in the `output` folder. 
+- `--remove-outliers` will remove outliers from the BOLD signal. By default, frames will only be censored by the FD threshold.
 
-`--keep-conn-matrices` will make the wrapper keep the `dconn/pconn` files after creating them. Otherwise, it will delete the `d/pconns` after adding them to the average `d/pconn`. The `d/pconn` files are needed to run `cifti_conn_pairwise_corr`, which compares the `d/pconn` files to the average file created by `cifti_conn_template`. So if this flag is excluded and `cifti_conn_pairwise_corr` is run, then the `d/pconn` files will be kept until `cifti_conn_pairwise_corr` finishes.
+- `--make-conn-conc` will make a list of connectivity matrices created by this wrapper. By default, the wrapper will not make a list. Running `pairwise_corr` mode will only work if there is already a list of connectivity matrices. Create one by running `matrix` or `template` mode with the `--make-conn-conc` flag. That will automatically build the `.conc` file name and save that file in the `output` folder.
 
-`--beta8` will run a beta version to reduce file size. Include this argument to reduce floating point precision and discard lower triangle of matrix. Exclude it to leave the same.  If included, this will produce 8Gb `.dconns`. Otherwise, this will make 33Gb `.dconns`. This option does nothing for `ptseries`.
+- `--beta8` will run a beta version to reduce file size. Include this argument to reduce floating point precision and discard lower triangle of matrix. Exclude it to leave the same.  If included, this will produce 8Gb `.dconns`. Otherwise, this will make 33Gb `.dconns`. This option does nothing for `ptseries`.
 
-`--remove-outliers` will remove outliers from the BOLD signal if this flag is included. Otherwise (by default), frames will only be censored by the FD threshold.
+- `--suppress-warnings` will prevent the wrapper from asking user for confirmation if the `.dconn` files created by the wrapper will exceed a certain threshold. By default, the wrapper will warn the user if it will create files totaling over 100 GB. This argument does nothing for `ptseries`.
 
-`--suppress-warnings` will prevent the wrapper from asking user for confirmation if the `.dconn` files created by the wrapper will exceed a certain threshold. By default, the wrapper will warn the user if it will create files totaling over 100 GB. This argument does nothing for `ptseries`.
-
-### Optional Arguments: Numerical Values
-
-`--smoothing-kernel` takes the smoothing kernel as one floating-point number. Only include this argument if smoothing will be used. Smoothing on ptseries is not supported. The default value is 'none'.
-
-`--minutes` takes the minutes limit as one floating-point number. The minutes limit is the number of minutes to be used to generate the correlation matrix. The default minutes limit of 'none' will make an `allframesbelowFDX` `.dconn` file. Subjects will have differing numbers of time points that go into each `.dconn`.
-
-`--fd-threshold` takes the motion threshold (maximum amount of acceptable motion between frames of a scan) for your data as a floating-point number. The default value is `0.2`.
-
-### Optional Arguments: Directories and Files
+#### Directory and File Path Flags
 
 Each of the arguments below accepts one value, a valid file or directory path. Each argument has a default value, but the user can optionally specify a different path.
- 
-`--input` takes a path to the directory containing all input `.conc` files. By default, this will be the directory containing `series-file`.
- 
-`--motion` takes the name of a `.conc` file pointing to FNL motion mat files for each dt or ptseries. The default value is `./raw/ADHD_DVARS_group_motion.conc`, a list of paths to files called `Power_2014FDonly.mat`. Type `none` to use no motion file.
- 
-`--left` takes the `.conc` file name of subjects' left midthicknessfile. This argument is only needed for smoothing. If this flag is included but no filename is given, then `ADHD_DVARS_group_left_midthickness_surfaces.conc` will be used as the default name. If only a filename is given, then the wrapper will look for the file in the `--input` directory. However, this argument also accepts absolute paths. 
 
-`--right` takes the `.conc` file name of subjects' right midthicknessfile. This argument is only needed for smoothing. If this flag is included but no filename is given, then `ADHD_DVARS_group_right_midthickness_surfaces.conc` will be used as the default name. If only a filename is given, then the wrapper will look for the file in the `--input` directory. However, this argument also accepts absolute paths.
+- `--input` takes a path to the directory containing all input `.conc` files. By default, this will be the directory containing `series-file`.
 
-`--dtseries` takes the path to 1 .conc file with a list of `.dtseries.nii` file paths. If the series-file has a list of paths to .ptseries.nii files, then a dtseries .conc file is still needed for outlier detection and removal. If this argument is excluded, then this script will try to find a `.dtseries.nii` file in the same location as the series-file argument.
+- `--motion` takes the name of a `.conc` text file listing paths pointing to FNL motion mat files for each dt or ptseries. This flag is necessary for motion correction, since by default the wrapper will not do any motion correction.
 
-`--template` takes the full path of a template file created by `cifti_conn_template`. If `cifti_conn_pairwise_corr` is run before running `cifti_conn_template`, this file should already exist at the specified path. By default, the wrapper will build the name of this file by combining the values of the `series-file`, `--motion`, `--fd-threshold`, and `--minutes` arguments. The wrapper will then either create or look for a file by that name in the `--output` directory if needed. This argument is unnecessary for `cifti_conn_matrix` to run.
+- `--left` and `--right` take the `.conc` file name of subjects' left and right midthickness files, respectively. These arguments are only needed for smoothing. If these flags are included without filenames is given, then `ADHD_DVARS_group_left`/`right_midthickness_surfaces.conc` will be used as the default name. If only a filename is given, then the wrapper will look for the file in the `--input` directory. However, this argument also accepts absolute paths.
 
-`--additional-mask` takes the path to an additional mask on top of the FD threshold. The mask should be a `.mat` file with `0`s and `1`s where `0`s are frames to be discarded and `1`s are frames to be used to make your matrix. This mask can be used to extract rests between blocks of task. This vector of ones and zeros should be the same length as your dtseries. The default value is "none".
+- `--dtseries` takes the path to 1 .conc file with a list of `.dtseries.nii` file paths. If the `series-file` has a list of paths to .ptseries.nii files, then a dtseries .conc file is still needed for outlier detection and removal. If `--dtseries` is excluded, then this script will try to find a dtseries `.conc` file in the same location as the `series-file` argument.
 
-### Advanced Usage Example
-```
-python3 cifti_conn_wrapper.py ./raw/dtseries_file.conc 3.0 template pairwise_corr --beta8 --keep-conn-matrices --motion none --template <Name of template file to be made> --output <Directory where output data will be placed> --make-conn-conc
-```
+- `--additional-mask` takes the path to an additional mask on top of the FD threshold. The mask should be a `.txt` file with `0`s and `1`s where `0`s are frames to be discarded and `1`s are frames to be used to make your matrix. This mask can be used to extract rests between blocks of task. This vector of `0`s and `1`s should be the same length as your dtseries. By default, no additional mask is used.
 
-## Expected Naming Convention for Input Imaging Data 
-For dtseries, subjects are expected to have the naming convention `XXXXX_Atlas.dtseries.nii`. Smoothing will create an additional dtseries called `XXXX_Atlas_SMOOTHED.dtseries.nii`.
+### Optional Arguments for Template-Creation and Pairwise-Correlation Modes
+
+These arguments only apply to the second and last run modes, `template` and `pairwise_corr`.
+
+- `--keep-conn-matrices` will make the wrapper keep the `dconn`/`pconn` files after creating them. Otherwise, it will delete the `d`/`pconns` after adding them to the average `d`/`pconn`. The `d`/`pconn` files are needed to run the `pairwise_corr` mode, which compares the `d`/`pconn` files to the average file created by the `template` mode. So if this flag is excluded and `pairwise_corr` is run, then the `d`/`pconn` files will be kept until `pairwise_corr` finishes.
+
+- `--template` takes the full path to a template file created by running `template` mode. If `pairwise_corr` mode is run before `template` mode, then the `--template` file should already exist at the specified path. By default, the wrapper will build the name of this file by combining the values of the `series-file`, `--motion`, `--fd-threshold`, and `--minutes` arguments. The wrapper will then create, or look for, a file by that name in the `output` directory if needed.
 
 ## Outputs
 Within the output folder, here is what the outputs will look like:
-- The output of `cifti_conn_matrix` will look like `./data/XXXXXX-X_FNL_preproc_Gordon_subcortical.ptseries.nii_5_minutes_of_data_at_FD_0.2_mmsFsRXXXXX.pconn.nii`
-- The output of `cifti_conn_template` will look like `dtseries_AVG.dconn.nii`
-- The output of `cifti_conn_pairwise_corr` will look like `./data/XXXXXX-X_FNL_preproc_Gordon_subcortical.ptseries.nii_5_minutes_of_data_at_FD_0.2_mmsFsRXXXXX.pconn.nii`
-
-The string of characters at the end is a unique identifying hash for the input `.ptseries` file.
+- The output of `cifti_conn_matrix` will look like `./data/XXXXXX-X_FNL_preproc_Gordon_subcortical.ptseries.nii_5_minutes_of_data_at_FD_0.2.pconn.nii`
+- The output of `cifti_conn_template` will look like `./data/dtseries_AVG.dconn.nii`
+- The output of `cifti_conn_pairwise_corr` will look like `./data/XXXXXX-X_FNL_preproc_Gordon_subcortical.ptseries.nii_5_minutes_of_data_at_FD_0.2.pconn.nii`
 
 ## Explanation of Process
 
-### cifti_conn_matrix
+### cifti_conn_matrix_for_wrapper
 
 This code build a connectivity matrix from BOLD times series data. The code has the option of using motion censoring (highly encouraged), to ensure that the connectivity matrix is accurate. It takes these arguments from the wrapper: `series-file`, `time-series`, `motion-file`, `fd-threshold`, `tr`, `minutes-limit`, `smoothing-kernel`, `left`, `right`, and `beta8`.
 
 The `time-series` argument passed to `cifti_conn_matrix` is either 'dtseries' or 'ptseries'. The wrapper infers it from the `series-file`.
 
-To avoid conflating multiple files with the same name listed in the input `.conc`, for each connectivity matrix, this wrapper generates a random hash composed of the first character of each folder name in its `.d/ptseries.nii` file's path. The wrapper also appends the first 5 characters of the `.d/ptseries.nii` file name. This gives each output connectivity matrix a unique but consistent filename.
+To avoid conflating multiple files with the same name listed in the input `.conc`, for each connectivity matrix, this wrapper generates a random hash composed of the first character of each folder name in its `.d`/`ptseries.nii` file's path. The wrapper also appends the first 5 characters of the `.d`/`ptseries.nii` file name. This gives each output connectivity matrix a unique but consistent filename.
 
-### cifti_conn_template
-This code builds a template d/pconn from a list of d/ptseries.  If the d/pconn exists, if will load it instead of making it anew (calls `cifti_conn_matrix`). It takes the same arguments from the wrapper as `cifti_conn_matrix`, as well as `keep-conn-matrices`.
+### cifti_conn_template_for_wrapper
+This code builds a template d/pconn from a list of d/ptseries. If the d/pconn exists, if will load it instead of making it anew (calls `cifti_conn_matrix_for_wrapper`). It takes the same arguments from the wrapper as `cifti_conn_matrix_for_wrapper`, as well as `keep-conn-matrices`.
 
-### cifti_conn_pairwise_corr
-This compares the connectivity matrix of each individual to the template (see cifti_conn_template), and provides a vector where each element is the correlation of connectivity to that greyorindate/parcellation. It takes these arguments from the wrapper: `template`, `p-or-dconn`, `make-conn-conc`, and `keep-conn-matrices`.
+### cifti_conn_pairwise_corr_exaversion
+This compares the connectivity matrix of each individual to the template (see `cifti_conn_template_for_wrapper`), and provides a vector where each element is the correlation of connectivity to that greyorindate/parcellation. It takes these arguments from the wrapper: `template`, `p`-or-`dconn`, `make-conn-conc`, and `keep-conn-matrices`.
 
-The `p-or-dconn` argument passed to `cifti_conn_pairwise_corr` is simply the `time-series` argument reformatted: `dtseries` becomes `dconn`, and `ptseries` becomes `pconn`. By default, the wrapper builds the name of the `matrices-conc` file by combining the `series-file`, `time-series`, `minutes`, and `fd-threshold` arguments.
+The `p`-or-`dconn` argument passed to `cifti_conn_pairwise_corr_exaversion` is simply the `time-series` argument reformatted: `dtseries` becomes `dconn`, and `ptseries` becomes `pconn`. By default, the wrapper builds the name of the `matrices-conc` file by combining the `series-file`, `time-series`, `minutes`, and `fd-threshold` arguments.
 
 ## Known Issues
   - The code added a pause function each time it computes outliers.  The pause function was added because sometimes the outlier file was read before it was done being written.
@@ -149,4 +210,3 @@ The `p-or-dconn` argument passed to `cifti_conn_pairwise_corr` is simply the `ti
 
 ## Feature Requests
  - https://trello.com/b/hQkyYits/robo-science
- 

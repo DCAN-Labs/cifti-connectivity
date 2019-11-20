@@ -4,7 +4,7 @@
 CIFTI connectivity wrapper
 Greg Conan: conan@ohsu.edu
 Created 2019-06-18
-Last Updated 2019-11-15
+Last Updated 2019-11-20
 """
 
 ##################################
@@ -37,7 +37,7 @@ CHOICES_TO_RUN = ["matrix", "template", "pairwise_corr"]
 
 # Get path to directory containing this file
 try:
-    PWD = os.path.dirname(os.path.abspath(__file__))
+    PWD = os.path.dirname(os.path.abspath(sys.argv[0]))
 except (OSError, AssertionError):
     PWD = os.getcwd()
 
@@ -613,18 +613,19 @@ def get_valid_wb_command():
 
 def validate_and_get_dtseries(cli_args, parser):
     """
-    Validate the path to
+    Validate the path to the .dtseries file used for outlier removal
     :param cli_args: argparse namespace with all command-line arguments
     :param parser: argparse ArgumentParser to raise error if invalid dir path
     :return: Path to valid .dtseries.nii file as a string, or the "none" string
     """
     if cli_args.remove_outliers != "1":
         dtseries = "none"
-    elif not cli_args.dtseries:
-        if cli_args.time_series == "dtseries":
-            dtseries = cli_args.series_file
-        else:
-            dtseries = cli_args.series_file.replace("ptseries", "dtseries")
+    elif cli_args.dtseries:
+        dtseries = cli_args.dtseries
+    elif cli_args.time_series == "dtseries":
+        dtseries = cli_args.series_file
+    else:
+        dtseries = cli_args.series_file.replace("ptseries", "dtseries")
     return readable_file_or_none(dtseries)
 
 

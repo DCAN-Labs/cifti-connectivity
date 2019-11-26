@@ -6,6 +6,15 @@
 #
 exe_name=$0
 exe_dir=`dirname "$0"`
+
+# Added 2019-11-26 to ensure that $TMPDIR is nonempty and points to a real path
+if [ "x$TMPDIR" = "x" ]; then
+    TMPDIR=${exe_dir}/temp
+    if [ ! -d $TMPDIR ]; then
+        mkdir $TMPDIR;
+    fi
+fi 
+
 if [ ! -d $TMPDIR/$USER ]; then
     mkdir $TMPDIR/$USER
 fi

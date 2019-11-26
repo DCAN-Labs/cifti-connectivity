@@ -160,6 +160,8 @@ else % use motion censoring
         end
         
         % use an external mask (.txt) instead of calculating the mask here
+        [orig_motion_filename, inputB_directory, ...
+            ~] = get_folder_params(B{i}, filesep);
         if other_motion_mask 
             FDvec = B{i};
             FDvec = remove_outliers_if(remove_outliers, FDvec, ...
@@ -167,8 +169,6 @@ else % use motion censoring
             
         else  % Use power 2014 motion
             FDvec = get_FDvec(B{i}, FD_threshold);
-            [orig_motion_filename, inputB_directory, ...
-                ~] = get_folder_params(B{i}, filesep);
             if no_output
                 output_directory = char(inputB_directory);
             end

@@ -33,72 +33,35 @@ function cifti_conn_template_for_wrapper(wb_command, dt_or_ptseries_conc_file, s
 %Added an arguement to keep .dconns/pconns after being made.
 
 %% Change strings to numbers if not already numbers  (i.e.if using the shell command)
-%Check to make sure that smoothing kernal is a number
-if is_none(smoothing_kernel)
-    smoothing_kernel= 'none';
-elseif isnumeric(smoothing_kernel)==1
-    disp('kernal is passed in as numeric')
-else
-    disp('kernal is  passed in as string. converting to numeric')
-    smoothing_kernel = str2num(smoothing_kernel);
-end
-disp(smoothing_kernel);
-
-if exist('output_directory','var') == 0
+if ~exist('output_directory', 'var')
     output_directory = [];
 end
 
-%Check to make sure that FD_threshold is a number
-if isnumeric(FD_threshold)==1
-else
-    FD_threshold = str2num(FD_threshold);
-end
+%Check to make sure that TR, bit8, keep_conn_matrices, and FD are numbers
+FD_threshold = make_numeric(FD_threshold, 'FD_threshold');
+TR = make_numeric(TR, 'TR');
+bit8 = make_numeric(bit8, 'bit8');
+keep_conn_matrices = make_numeric(keep_conn_matrices, 'keep_conn_matrices');
 
-%Check to make sure that TR is a number
-if isnumeric(TR)==1
-else
-    TR = str2num(TR);
-end
+%Check to make sure that minutes limit and smoothing kernels are number
+%(unless you've set them to 'none')
+smoothing_kernel = make_numeric_or_none(smoothing_kernel, 'smoothing_kernel', 'No smoothing kernel supplied');
+minutes_limit = make_numeric_or_none(minutes_limit, 'minutes_limit', 'Warning minutes limit is set to none.  Subjects might have different number of data point in individual matrices');
 
-%Check to make sure that  minutes limit is a number (unless you've set it
-%to 'none')
-if is_none(minutes_limit)
-    disp('Warning minutes limit is set to none.  Subjects might have different number of data point in individual matrices');
-    minutes_limit= 'none';
-elseif isnumeric(minutes_limit)==1
-    disp('minutes limit is passed in as numeric.')
-else
-    disp('minutes limit is passed in as string. converting to numeric')
-    minutes_limit = str2num(minutes_limit);
-end
-
-%Check to make sure that bit8 is a number
-if isnumeric(bit8)==1
-else
-    bit8 = str2num(bit8);
-end
-
-%Check to make sure that keep_conn_matrices is a number
-if isnumeric(keep_conn_matrices)==1
-else
-    keep_conn_matrices = str2num(keep_conn_matrices);
-end
 %% Load concatenated paths (i.e. paths to ciftis)
 %check to see if there one subject or a a list of subjects in conc file.
-
 conc = strsplit(dt_or_ptseries_conc_file, '.');
 conc = char(conc(end));
-if strcmp('conc',conc) == 1
+if strcmpi('conc', conc)
     A = importdata(dt_or_ptseries_conc_file);
 else
     A = {dt_or_ptseries_conc_file};
 end
 
 for i = 1:length(A)
-    if exist(A{i}) == 0
+    if ~exist(A{i})
         NOTE = ['Series ' num2str(i) ' does not exist']
         return
-    else
     end
 end
 disp('All series files exist continuing ...')
@@ -117,10 +80,10 @@ end
 
 %% Load Motion vector paths
 if is_none(motion_file)
-    'No motion files, will use all frames to generate matrices'
+    disp('No motion files, will use all frames to generate matrices')
     B = {motion_file};
 else
-    if strcmp('conc',conc) == 1
+    if strcmpi('conc', conc)
         B = importdata(motion_file);
     else
         B = {motion_file};
@@ -128,10 +91,9 @@ else
     
     % Check that all motion files in conc file exist
     for i = 1:length(B)
-        if exist(B{i}) == 0
+        if ~exist(B{i})
             NOTE = ['motion file ' num2str(i) ' does not exist']
             return
-        else
         end
     end
     disp('All motion files exist continuing ...')
@@ -143,39 +105,17 @@ conc = strsplit(dt_or_ptseries_conc_file, '.');
 conc = char(conc(end));
 if is_none(smoothing_kernel)
     Note = ['No smoothing, continuing...'];
-    if strcmp('conc',conc) == 1
+    if strcmpi('conc', conc)
         left = left_surface_file;
         right = right_surface_file;
     else
-        'Need to input a conc file with several subjects or dtseries to average'
+        disp(['Need to input a conc file with several subjects or ' ...
+              'dtseries to average'])
         return
     end
 else
-    if strcmp('conc',conc) == 1
-        C = importdata(left_surface_file); %check to make sure surface files exist
-        D = importdata(right_surface_file); %check to make sure surface files exist
-    else
-        'Need to input a conc file with several subjects or dtseries to average'
-        return
-    end
-    
-    for i = 1:length(C)
-        if exist(C{i}) == 0
-            NOTE = ['Subject left surface ' num2str(i) ' does not exist']
-            return
-        else
-        end
-    end
-    disp('All left surface files for smoothing exist continuing ...')
-    
-    for i = 1:length(D)
-        if exist(D{i}) == 0
-            NOTE = ['Subject right surface ' num2str(i) ' does not exist']
-            return
-        else
-        end
-    end
-    disp('All right surface files for smoothing exist continuing ...')
+    C = get_surface_files('left', left_surface_file, conc);
+    D = get_surface_files('right', right_surface_file, conc);
     left = C{1};
     right = D{1};
 end
@@ -184,41 +124,69 @@ end
 % This section and the next one were rewritten by Greg Conan on 2019-11-06 
 % to trim redundant code and modularize it into separate functions.
 % Make first dconn.nii then rename
+
+% Map a matrix filepath to whether that matrix has been added to the avg
 already_added = containers.Map('KeyType', 'char', 'ValueType', 'logical');
+
+% Get dconn paths and file names of matrix, dconns, motion, output conc
 matrix_filename = get_matrix_filename(A, 1, smoothing_kernel, suffix);
 dconn_paths = get_dconn_paths(FD_threshold, minutes_limit, ...
     matrix_filename, motion_file, output_directory, suffix2);
 motion_B = get_motion_file(motion_file, B, 1);
 output_conc = get_output_conc(dt_or_ptseries_conc_file, output_directory);
-dconn_paths = make_avg_matrix(A, motion_B, bit8, dconn_paths, ...
-    FD_threshold, 1, left, minutes_limit, output_directory, ...
-    remove_outliers, right, series, smoothing_kernel, TR, wb_command, ...
-    additional_mask, make_dconn_conc, dtseries_conc, already_added);
+
+% Make average matrix unless one already exists
+paths = dir(dconn_paths);
+if isempty(paths)
+    dconn_paths = char(cifti_conn_matrix_for_wrapper( ...
+        wb_command, A{1}, series, motion_B, num2str(FD_threshold), ...
+        TR, minutes_limit, smoothing_kernel, left, right, bit8, ...
+        remove_outliers, additional_mask, make_dconn_conc, ...
+        output_directory, dtseries_conc));
+else
+    dconn_paths = char(get_already_existing_matrix(paths, already_added));
+end
+
+% Rename average dconn, do cifti math, clean variables, then do next
 rename_avg_dconn(dconn_paths, output_conc, keep_conn_matrices, suffix2);
 already_added(dconn_paths) = 1;
 
 %% Build rest of template
 for i = 2:length(A)
+    
+    % Get matrix filename, dconn paths, and motion file
     matrix_filename = get_matrix_filename(A, i, smoothing_kernel, suffix);
     dconn_paths = char(get_dconn_paths(FD_threshold, minutes_limit, ...
         matrix_filename, motion_file, output_directory, suffix2));
     motion_B = get_motion_file(motion_file, B, i);
-    dconn_paths = make_avg_matrix(A, motion_B, bit8, dconn_paths, ...
-        FD_threshold, i, left, minutes_limit, output_directory, ...
-        remove_outliers, right, series, smoothing_kernel, TR, wb_command, ...
-        additional_mask, make_dconn_conc, dtseries_conc, already_added);
-    rename_avg_dconn(dconn_paths, output_conc, keep_conn_matrices, suffix2);
+    
+    % Make average matrix unless one already exists
+    paths = dir(dconn_paths);
+    if isempty(paths)
+        dconn_paths = char(cifti_conn_matrix_for_wrapper( ...
+            wb_command, A{i}, series, motion_B, num2str(FD_threshold), ...
+            TR, minutes_limit, smoothing_kernel, left, right, bit8, ...
+            remove_outliers, additional_mask, make_dconn_conc, ...
+            output_directory, dtseries_conc));
+    else
+        dconn_paths = char(get_already_existing_matrix(paths, ...
+                                                       already_added));
+    end
+    
+    % Rename average dconn, do cifti math, clean variables, then do next
+    rename_avg_dconn(dconn_paths, output_conc, keep_conn_matrices, ...
+                     suffix2);
     cifti_math_and_cleanup(dconn_paths, output_conc, ...
         keep_conn_matrices, suffix2, wb_command);
     already_added(dconn_paths) = 1;
 end
 
 %% Generate Mean by dividing by N
-
 N = num2str(length(A)); % number of observations
 
 %mean = s1/N
-cmd = [wb_command ' -cifti-math " s1/' N '" ' output_conc '_AVG.' suffix2 ' -var s1 ' output_conc '_AVG.' suffix2];
+cmd = [wb_command ' -cifti-math " s1/' N '" ' output_conc '_AVG.' ...
+       suffix2 ' -var s1 ' output_conc '_AVG.' suffix2];
 execute_and_clear(cmd);
 
 %% Rename file to display chosen options
@@ -228,12 +196,53 @@ disp('Done making average template');
 end
 
 
+function num_var = make_numeric(num_var, var_name)
+    % Convert num_var to a number if it is not already a number or 'none'
+    if is_none(num_var) && ~isnumeric(num_var)
+        disp([var_name ' passed in as a string. Converting to numeric.'])
+        num_var = str2num(num_var);
+    end
+end
+
+
+function num_var = make_numeric_or_none(num_var, var_name, varargin)
+    % Convert num_var to a number if it is not already a number or 'none'
+    if is_none(num_var)
+        if nargin > 0
+            disp(varargin)
+        end
+    else
+        num_var = make_numeric(num_var, var_name);
+    end
+end
+
+
+function surface_files = get_surface_files(LR, surface_conc, conc)
+    % Get all paths to surface files
+    if strcmpi('conc', conc)
+        surface_files = importdata(surface_conc); 
+    else
+        surface_files = {surface_conc};
+    end
+    
+    % Check to make sure surface files exist
+    for i = 1:length(surface_files)
+        if ~exist(surface_files{i}, 'file')
+            disp(['Subject ' LR ' surface ' num2str(i) ' does not exist'])
+            return
+        end
+    end
+    disp(['All ' LR ' surface files for smoothing exist. Continuing ...'])
+end
+
+
 function matrix_filename = get_matrix_filename(A, ix, smoothing, suffix)
     % Get name of connectivity matrix file
     if is_none(smoothing)
         A_smoothed = A{ix};
     else
-        A_smoothed = [A{ix}(1:length(A{ix})-13) '_SMOOTHED_' num2str(smoothing) '.' suffix];
+        A_smoothed = [A{ix}(1:length(A{ix})-13) '_SMOOTHED_' ...
+                      num2str(smoothing) '.' suffix];
     end
     [~, matrix_filename, matrix_ext] = fileparts(char(A_smoothed));
     matrix_filename = [matrix_filename matrix_ext];
@@ -244,12 +253,16 @@ function dconn_paths = get_dconn_paths(fd, minutes, matrix, ...
         motion_file, output_dir, ext)
     % Get path to dconns
     if is_none(motion_file)
-        dconn_paths = char(strcat(output_dir, matrix, '_all_frames_at_FD_', {motion_file}, '*.', {ext}));
+        dconn_paths = char(strcat(output_dir, matrix, ...
+            '_all_frames_at_FD_', {motion_file}, '*.', {ext}));
     else
         if is_none(minutes)
-            dconn_paths = char(strcat(output_dir, matrix, '_all_frames_at_FD_', {num2str(fd)}, '*.', {ext}));
+            dconn_paths = char(strcat(output_dir, matrix, ...
+                '_all_frames_at_FD_', {num2str(fd)}, '*.', {ext}));
         else
-            dconn_paths = char(strcat(output_dir, matrix, '_', {num2str(minutes)}, '_minutes_of_data_at_FD_', {num2str(fd)}, '*.', {ext}));
+            dconn_paths = char(strcat(output_dir, matrix, '_', ...
+                {num2str(minutes)}, '_minutes_of_data_at_FD_', ...
+                {num2str(fd)}, '*.', {ext}));
         end
     end
 end
@@ -257,8 +270,7 @@ end
 
 function motion_file = get_motion_file(motion_file, B, ix)
     % Get the path to a motion file, or 'none' if there is no motion file
-    if is_none(motion_file)
-    else
+    if ~is_none(motion_file)
         motion_file = B{ix};
     end
 end
@@ -271,46 +283,31 @@ function output_conc = get_output_conc(input_conc, output_directory)
 end
 
 
-function matrix_file = make_avg_matrix(A, B, bit8, dconn_paths, ...
-        fd, ix, left, minutes, output_dir, remove_outliers, right, ...
-        series, smoothing, TR, wb_command, add_mask, make_dconn_conc, ...
-        dt, matrices_added)
-    % Create connectivity matrix unless one already exists
-    paths = dir(dconn_paths);
-    if isempty(paths)
-        disp('conn.nii does not exist for this subject yet.  Running code to create matrix.')
-        matrix_file = char(cifti_conn_matrix_for_wrapper(wb_command, A{ix}, series, B, num2str(fd), TR, minutes, smoothing, left, right, bit8, remove_outliers, add_mask, make_dconn_conc, output_dir, dt));
-        % rename output to average
-        if exist(matrix_file) == 0
-            NOTE = ['Exiting...file ' dconn_paths ' does not exist, likely because subject does not meet criteron or there was an error making their connectivity matrix']
-            return
+function matrix_file = get_already_existing_matrix(paths, matrices_added)
+    % Get the name of the matrix file which would have been created, but
+    % has already been created. Handle 2 matrices which have the same name
+    % but were in different folders separately.
+    for m = 1:size(paths)
+        matrix_file = [paths(m).folder filesep paths(m).name];
+        if isKey(matrices_added, matrix_file)
+            clear matrix_file
         else
+            break
         end
+    end
+    if exist(matrix_file)
+        disp(['conn.nii already exists for this subject. Renaming to '...
+              'AVG for first subject.'])
     else
-        
-        % Handle 2 matrices which have the same name but were in different 
-        % folders separately
-        for m = 1:size(paths)
-            matrix_file = [paths(m).folder filesep paths(m).name];
-            if isKey(matrices_added, matrix_file)==1
-                clear matrix_file
-            else
-                break
-            end
-        end
-        if exist(matrix_file)
-            disp('conn.nii already exists for this subject.  Renaming to AVG for first subject.')
-        else
-            disp(['Error: Mismatch in the number of matrix files: ' matrix_file])
-            return
-        end
+        disp(['Error: Mismatch in  number of matrix files: ' matrix_file])
+        return
     end
 end
 
 
 function rename_avg_dconn(paths, output_conc, keep_conn_matrices, suffix2)
-    % Add the word "AVG" to average matrix to avoid overwriting the originals
-    if keep_conn_matrices == 0
+    % Add the word "AVG" to average matrix to not overwrite the originals
+    if ~keep_conn_matrices
         cmd = ['mv ' paths ' ' output_conc '_AVG.' suffix2];
     else
         cmd = ['cp ' paths ' ' output_conc '_AVG.' suffix2];
@@ -319,10 +316,13 @@ function rename_avg_dconn(paths, output_conc, keep_conn_matrices, suffix2)
 end
 
 
-function cifti_math_and_cleanup(dconn_paths, output_conc, keep_conn_matrices, suffix2, wb_command)
-    % Run cifti math on average matrices, and then delete dconn files unless
-    % keep_conn_matrices is true
-    cmd = [wb_command ' -cifti-math  " M1 + M2 " ' output_conc '_AVG.' suffix2 ' -var M1 ' output_conc '_AVG.' suffix2 ' -var M2 '  dconn_paths];
+function cifti_math_and_cleanup(dconn_paths, output_conc, ...
+                                keep_conn_matrices, suffix2, wb_command)
+    % Run cifti math on average matrices, and then delete dconn files 
+    % unless keep_conn_matrices is true
+    cmd = [wb_command ' -cifti-math  " M1 + M2 " ' output_conc '_AVG.' ...
+           suffix2 ' -var M1 ' output_conc '_AVG.' suffix2 ' -var M2 ' ...
+           dconn_paths];
     execute_and_clear(cmd);
     if keep_conn_matrices == 0
         delete(dconn_paths);

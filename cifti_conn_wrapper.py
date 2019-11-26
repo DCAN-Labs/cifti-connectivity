@@ -4,7 +4,7 @@
 CIFTI connectivity wrapper
 Greg Conan: conan@ohsu.edu
 Created 2019-06-18
-Last Updated 2019-11-20
+Last Updated 2019-11-26
 """
 
 ##################################
@@ -501,9 +501,9 @@ def warn_user_about_dconn_size(cli_args):
     # Open series file again to count its lines
     with open(cli_args.series_file, "r") as series_file:
 
-        # Figure out how many .dconn files to make (1 per line in series file,
-        # but only 1 if .dconn files are deleted after being added to the 
-        # rolling average)
+        # Figure out how many .dconn files to make (1 per line in series 
+        # file, but only 1 if .dconn files are deleted after being added  
+        # to the rolling average)
         number_of_dconns_to_make = 1
         if (cli_args.keep_conn_matrices == "1" or not
                 will_delete_conn_matrices_later(cli_args)):
@@ -556,9 +556,10 @@ def get_valid_series_type(cli_args, parser):
 
         # If size of .dconn files to make exceeds threshold, then warn user
         if time_series == "dtseries":
-            if ((not cli_args.suppress_warnings) and
-                    (CHOICES_TO_RUN[0] in cli_args.scripts or
-                     CHOICES_TO_RUN[1] in cli_args.scripts)):
+            if ((not cli_args.suppress_warnings) 
+                and os.path.splitext(cli_args.series_file)[1] != ".nii" 
+                and (CHOICES_TO_RUN[0] in cli_args.scripts
+                     or CHOICES_TO_RUN[1] in cli_args.scripts)):
                 warn_user_about_dconn_size(cli_args)
 
         # If invalid time series is given, then tell user and crash

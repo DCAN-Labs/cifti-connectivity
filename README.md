@@ -26,6 +26,10 @@ If you want to run this wrapper on only one subject session, you do not need to 
 ### Expected Naming Convention for Input Imaging Data
 This wrapper processes dense (`dtseries`) or parcellated (`ptseries`) time series data. For dtseries, each subject session is expected to have one file following the naming convention `XXXXX_Atlas.dtseries.nii`. Smoothing will create an additional dtseries called `XXXX_Atlas_SMOOTHED.dtseries.nii`.
 
+The wrapper expects file naming conventions to follow BIDS specifications. So, every file must have a different name. If multiple files have the same name, then they will collide and all but one of their output files will be overwritten.
+
+When run in `matrix` mode with the `--make-conn-conc` flag, the wrapper will create a `.conc` file listing the paths to the connectivity matrix files. It will automatically generate the filename, and this filename depends on several parameters (including `series-file`, `--fd-threshold`, and `--motion`). So a `.conc` file made from a run with specific values of those parameters may not work for runs with other values of those parameters. Changing the name of the `.conc` file may fix this problem.
+
 ## Usage
 
 ### Modes
@@ -207,6 +211,9 @@ The `p`-or-`dconn` argument passed to `cifti_conn_pairwise_corr_exaversion` is s
 ### 11/13/2019
 - Added the `--dtseries` parameter.
 - Updated description of how the hash appended to each connectivity matrix filename is generated.
+
+### 12/5/2019
+- Added details about file naming limits/conventions which may cause problems if overlooked
 
 ## Feature Requests
  - https://trello.com/b/hQkyYits/robo-science

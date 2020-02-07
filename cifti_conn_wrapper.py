@@ -4,7 +4,7 @@
 CIFTI connectivity wrapper
 Greg Conan: conan@ohsu.edu
 Created 2019-06-18
-Last Updated 2019-11-26
+Last Updated 2020-02-07
 """
 
 ##################################
@@ -24,9 +24,9 @@ Last Updated 2019-11-26
 
 import argparse
 from datetime import datetime
-from glob import iglob
+import glob
 import os
-from socket import gethostname
+import socket
 import subprocess
 import sys
 
@@ -38,8 +38,9 @@ CHOICES_TO_RUN = ["matrix", "template", "pairwise_corr"]
 # Get path to directory containing this file
 try:
     PWD = os.path.dirname(os.path.abspath(sys.argv[0]))
-except (OSError, AssertionError):
-    PWD = os.getcwd()
+except OSError as e:
+    sys.exit("{} {} cannot find the path to the directory it is in."
+                .format(e, sys.argv[0]))
 
 # Default directories for input data and wrapped scripts (src)
 DEFAULT_INPUT = os.path.join(PWD, "raw")
@@ -73,7 +74,6 @@ WB_RUSHMORE = "/mnt/max/software/workbench/bin_linux64/wb_command"
 
 
 ### Functions
-
 
 def main():
     cli_args = get_cli_args()
@@ -280,7 +280,7 @@ def get_cli_args():
         "--mre-dir",
         type=readable_dir,
         help=("Path to directory containing MATLAB Runtime Environment (MRE)"
-              "version 9.1 or newer. This is used to run compiled MATLAB "
+              "version 9.1. This is used to run compiled MATLAB "
               "scripts. This argument must be a valid path to an existing "
               "folder.")
     )
@@ -550,6 +550,8 @@ def get_valid_series_type(cli_args, parser):
     try:
         if cli_args.series_file[-11:] == "tseries.nii":
             time_series = cli_args.series_file[-12:-4]
+        elif cli_args.series_file[-8:] == "conn.nii":
+            time_series = cli_args.series_file[-9] + "tseries"
         else:
             with open(cli_args.series_file, "r") as series_file:
                 time_series = series_file.readline().split(".")[-2]
@@ -593,7 +595,7 @@ def get_valid_wb_command():
     except subprocess.CalledProcessError:
 
         # If host server is RUSHMORE or EXACLOUD, then get its wb_command
-        host = gethostname()
+        host = socket.gethostname()
         if host == "rushmore":
             wb_command = WB_RUSHMORE
         elif "exa" in host:
@@ -640,7 +642,7 @@ def validate_and_get_mre_dir(path, parser):
     """
     # If no MRE dir was provided, use a default depending on the host server
     if not path:
-        host = gethostname()
+        host = socket.gethostname()
         if host == "rushmore":
             path = MRE_RUSHMORE
         elif "exa" in host:
@@ -732,13 +734,14 @@ def validate_concs_same_length(conc_file_args, cli_args, parser):
             parser.error("These .conc files have different numbers of lines:\n"
                          "{}\n{}\n\nPlease use .conc files which all have the "
                          "same number of lines.".format(prev_conc, conc_path))
-                
+
 
 def get_conc_file_paths(cli_args):
     """
-    Build and return an incomplete path to .conc file(s) from input parameters
+    Build an incomplete path to .conc file(s) from input parameters, then use
+    it to return a list of path(s) to either .conc file(s) or a matrix
     :param cli_args: argparse namespace with all command-line arguments
-    :return: String with placeholders, representing multiple .conc files
+    :return: List of strings which are paths to .conc files or matrix files
     """
 
     def get_paths(cli_args, fd_or_none):
@@ -751,13 +754,16 @@ def get_conc_file_paths(cli_args):
             cli_args.time_series, fd_or_none
         ))
 
-    # Validate the path to .conc file(s) to be returned
-    paths = get_paths(cli_args, cli_args.fd)
-    if not next(iglob(paths), None):
-        paths = get_paths(cli_args, "none")
-        if not next(iglob(paths), None):
-            print("No .conc file(s) at {}".format(paths))
-    return paths
+    if os.path.splitext(cli_args.series_file)[1] != ".conc":
+        paths_list = [cli_args.series_file]
+    else:  # Validate the path to .conc file(s) to be returned
+        paths = get_paths(cli_args, cli_args.fd)
+        if not next(glob.iglob(paths), None):
+            paths = get_paths(cli_args, "none")
+            if not next(glob.iglob(paths), None):
+                print("No .conc file(s) at {}".format(paths))
+        paths_list = glob.glob(paths)
+    return paths_list
 
 
 def get_matrix_or_template_parameters(cli_args):
@@ -835,7 +841,7 @@ def cifti_conn_pairwise_corr(cli_args):
     """
     # Run pairwise_corr on each .conc file listing all of conn matrices made by
     # by a previous step of the script
-    for conc_file in iglob(get_conc_file_paths(cli_args)):
+    for conc_file in get_conc_file_paths(cli_args):
 
         # Call cifti_conn_pairwise_corr script
         subprocess.check_call((
@@ -845,7 +851,8 @@ def cifti_conn_pairwise_corr(cli_args):
             cli_args.template,
             cli_args.time_series[0] + "conn",
             conc_file,
-            cli_args.keep_conn_matrices
+            cli_args.keep_conn_matrices,
+            cli_args.output
         ))
 
         # If user said not to keep .conc file but pairwise_corr used it,
@@ -854,7 +861,8 @@ def cifti_conn_pairwise_corr(cli_args):
             try:
                 os.remove(conc_file)
             except FileNotFoundError as e:
-                print("Could not find file at " + e.filename)
+                print("Could not find and remove connectivity matrix file at "
+                      + e.filename)
 
 
 if __name__ == '__main__':

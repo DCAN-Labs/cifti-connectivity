@@ -32,7 +32,7 @@ if isempty(output_directory)
     no_output = 1;
 end
 
-% convert number variables to cnumbers (only within compiled code)
+% Convert number variables to cnumbers (only within compiled code)
 % Check to ensure that input variables which should be numbers are numbers
 bit8 = make_numeric(bit8, 'Beta 8');
 FD_threshold = make_numeric(FD_threshold, 'FD threshold');
@@ -59,7 +59,7 @@ if strcmpi(series, 'ptseries')
     suffix = 'ptseries.nii';
     suffix2 = 'pconn.nii';
     
-    % set default precision
+    % Set default precision
     % Connectivity file sizes are NOT reduced for ptseries
     output_precision = ' ';
     
@@ -69,8 +69,8 @@ elseif strcmpi(series, 'dtseries')
     if exist('bit8', 'var')
         bit8 = make_numeric(bit8, 'Beta 8');
         
-        %set default precision. 
-        if bit8 == 1  % Connectivity file sizes are reduced for dtseries
+        % Set default precision. 
+        if bit8  % Connectivity file sizes are reduced for dtseries
             output_precision = [' -cifti-output-datatype INT8 ' ...
                                 '-cifti-output-range -1.0 1.0'];
         else
@@ -80,7 +80,7 @@ elseif strcmpi(series, 'dtseries')
         output_precision = ' ';
     end
 else
-    'series needs to be "ptseries" or "dtseries"';
+    'Series needs to be "ptseries" or "dtseries"';
     return
 end
 
@@ -120,11 +120,7 @@ if strcmpi(motion_file, 'none') % run this if no motion censoring
 else % use motion censoring
     % rename temp file so it isn't overwritten when running in parallel
     stdev_temp_filename=[output_directory orig_conc_file '_temp.txt'];
-    if strcmp('conc', conc)
-        B = importdata(motion_file);
-    else
-        B = {motion_file};
-    end
+    B = import_conc_or_file(motion_file, conc);
     
     %Make sure length of motion files matches length of timeseries
     if length(A) ~= length(B)
@@ -307,11 +303,7 @@ function [paths, conc] = get_paths_from_conc(conc_file)
     % Check to see if there 1 subject or a list of subjects in conc file.
     conc = strsplit(conc_file, '.');
     conc = char(conc(end));
-    if strcmp('conc', conc)
-        paths = importdata(conc_file);
-    else
-        paths = {conc_file};
-    end
+    paths = import_conc_or_file(conc_file, conc);
 
     % Validate that all paths in .conc file point to real files
     for i = 1:length(paths)
@@ -324,13 +316,19 @@ function [paths, conc] = get_paths_from_conc(conc_file)
 end
 
 
+function from_files = import_conc_or_file(path, conc)
+    % Import data from a file, or from a .conc list of files
+    if strcmpi('conc', conc)
+        from_files = importdata(path);
+    else
+        from_files = {path};
+    end
+end
+
+
 function surface_files = get_surface_files(LR, surface_conc, conc)
     % Get all paths to surface files
-    if strcmpi('conc', conc)
-        surface_files = importdata(surface_conc); 
-    else
-        surface_files = {surface_conc};
-    end
+    surface_files = import_conc_or_file(surface_conc, conc);
     
     % Check to make sure surface files exist
     for i = 1:length(surface_files)
@@ -380,6 +378,7 @@ function [A_smoothed_i, outfile] = minutes_limit_calculation(...
         outfile = [char(output_dir) char(orig_cifti_file) ...
                    min_cmd_motion '.' suffix2];
         A_smoothed_i = 'none';
+        
     else % Smooth
         A_smoothed_i = [char(output_dir) char(orig_cifti_file( ...
             1:length(char(orig_cifti_file))-13)) '_SMOOTHED_' ...
@@ -397,7 +396,9 @@ function [A_smoothed_i, outfile] = minutes_limit_calculation(...
             disp('Smoothed series already created for this subject')
         end
     end
-    if ~exist(outfile, 'file') % check to see if the file already exists
+    
+    % Check to see if the file already exists
+    if ~exist(outfile, 'file')
         if strcmpi(smoothing, 'none')
             if ~exist('weights', 'var')
                 weights = [' -weights ' char(output_dir) ...
@@ -513,6 +514,7 @@ function FDvec = remove_outliers_if(remove_outliers, FDvec, filename, ...
         disp(['Removing outliers using .dtseries file ' filename])
         FDvec = remove_frames_from_FDvec(filename, FDvec, ...
             stdev_temp_filename, wb_command, wait);
+        
     else  % exist('remove_outliers','var') == 1 && remove_outliers == 0;
         disp(['Motion censoring performed on FD alone. '...
               'Frames with outliers in BOLD std dev not removed']);
@@ -569,8 +571,7 @@ function finish_and_save_concs(A, FD_threshold, minutes_limit, ...
         [~, input_directory, ~] = get_folder_params(A{1}, filesep);
         output_directory =char(input_directory);
     end
-    conc_names = {'all_frames', 'at_thresh', 'at_thr_min_lim', ...
-                  'without'};
+    conc_names = {'all_frames', 'at_thresh', 'at_thr_min_lim', 'without'};
     concs = {all_frames, at_thresh, at_thr_min_lim, without};
     for i=1:4
         conc_path = get_conc_path(series_path, p_or_d, ...
@@ -609,7 +610,6 @@ function [at_thresh, at_thresh_min_lim, without] = collect_conns( ...
         end
     end
 end
-
 
 
 function save_out_file(out_dir, orig_motion, fd, min_file_end, FDvec)

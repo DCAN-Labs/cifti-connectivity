@@ -20,8 +20,9 @@ if ~exist(pconn_dconn_template, 'file')
     disp('Template does not exist.')
     return
 else
-    [~,filename,extension] = fileparts(pconn_dconn_template);
-    pconn_dconn_template_basename = [filename extension];
+    [~,pconn_dconn_template_basename,extension] = fileparts(pconn_dconn_template);
+    [~, pconn_dconn_template_basename, ~] = fileparts(pconn_dconn_template_basename)
+    % pconn_dconn_template_basename = [filename extension];
 end
 
 %% make sure files connectivity matrices in conc exist
@@ -44,13 +45,15 @@ else
     return
 end
 
+[template_path, template_name, template_ext] = fileparts(pconn_dconn_template);
+[~, template_name, ~] = fileparts(template_name);
 scalar_paths = [];
 for i = 1:length(A)
     [~, A_i_basename, A_i_ext] = fileparts(A{i});  % set scalar name
-    dconn_vs_atlas = [output_dir filesep A_i_basename A_i_ext '_to_' ...
-                      pconn_dconn_template_basename '.dscalar.nii']; 
+    out_conn_path_pt1 = [output_dir filesep A_i_basename A_i_ext '_to_']
+    dconn_vs_atlas = [out_conn_path_pt1 pconn_dconn_template_basename ...
+                      '.' suffix]; 
     if ~exist(dconn_vs_atlas) % make sure the matrix doesn't already exist
-        [template_path, template_name, template_ext] = fileparts(pconn_dconn_template);
         cmd = [wb_command ' -cifti-pairwise-correlation ' pconn_dconn_template ' ' A{i} ' ' dconn_vs_atlas] % A{i} '_to_' template_name '.' suffix]
         execute_display_and_clear(cmd, cmd);
     else
@@ -58,7 +61,7 @@ for i = 1:length(A)
     end
     
     %add option to delete matrices after making scalars
-    msg = strcat(' matrix: ',(A{i}));
+    msg = strcat('matrix: ', (A{i}));
     if str2num(keep_conn_matrices) == 0
         execute_display_and_clear(['rm -f ' A{i}], ['removing ' msg])
     else
@@ -66,14 +69,13 @@ for i = 1:length(A)
     end
     
     %scalar_paths = [scalar_paths; strcat({pwd}, '/', {subject_conn_conc}, '_', {num2str(i)}, '_to_', {pconn_dconn_template}, '.', {suffix})]; %for scalar conc file
-    scalar_paths = [scalar_paths; strcat(A{i}, '_to_', {template_name}, '.', {suffix})]; %for scalar conc file 
+    scalar_paths = [scalar_paths; strcat(out_conn_path_pt1, {template_name}, '.', {suffix})]; %for scalar conc file 
 end
 Summary_of_pairwise = [num2str(i),'  total scalars made from subject list.'];
 disp(Summary_of_pairwise);
-%% GENERATE FINAL CONC text file here to use in other code ()
+%% GENERATE FINAL CONC text file here to use in other code
 
 %concname = [pwd '/' subject_conn_conc '_vs_' pconn_dconn_template];
-[template_path, template_name, template_ext] = fileparts(pconn_dconn_template)
 [~, new_scalar_base, new_scalar_ext] = fileparts(subject_conn_conc);
 new_scalar_path = [output_dir filesep new_scalar_base new_scalar_ext ...
                    '_vs_' template_name '_scalar.conc'];

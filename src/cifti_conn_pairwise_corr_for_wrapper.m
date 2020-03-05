@@ -1,4 +1,4 @@
-function  cifti_conn_pairwise_corr_exaversion(wb_command, pconn_dconn_template,pconn_or_dconn, subject_conn_conc, keep_conn_matrices, output_dir)
+function  cifti_conn_pairwise_corr_for_wrapper(wb_command, pconn_dconn_template,pconn_or_dconn, subject_conn_conc, keep_conn_matrices, output_dir)
 
 %pconn_dconn_template = template correlation matrix to compare data to
 %pconn_or_dconn = specify if your data are parcellated or dense 
@@ -20,7 +20,7 @@ if ~exist(pconn_dconn_template, 'file')
     disp('Template does not exist.')
     return
 else
-    [~,pconn_dconn_template_basename,extension] = fileparts(pconn_dconn_template);
+    [~, pconn_dconn_template_basename, extension] = fileparts(pconn_dconn_template);
     [~, pconn_dconn_template_basename, ~] = fileparts(pconn_dconn_template_basename)
     % pconn_dconn_template_basename = [filename extension];
 end
@@ -28,8 +28,8 @@ end
 %% make sure files connectivity matrices in conc exist
 %conc = strsplit(subject_conn_conc, '/');
 disp(subject_conn_conc)
-%conc = char(conc(end));
-%disp(conc)
+% conc = char(conc(end));
+% disp(conc)
 A = import_conc_or_file(subject_conn_conc, 'pconn or dconn .conc or file');
 
 %% Generate workbench command to do the pairwise correlation for all matrices in conc file
@@ -50,14 +50,14 @@ end
 scalar_paths = [];
 for i = 1:length(A)
     [~, A_i_basename, A_i_ext] = fileparts(A{i});  % set scalar name
-    out_conn_path_pt1 = [output_dir filesep A_i_basename A_i_ext '_to_']
+    out_conn_path_pt1 = [output_dir filesep A_i_basename A_i_ext '_to_'];
     dconn_vs_atlas = [out_conn_path_pt1 pconn_dconn_template_basename ...
                       '.' suffix]; 
     if ~exist(dconn_vs_atlas) % make sure the matrix doesn't already exist
         cmd = [wb_command ' -cifti-pairwise-correlation ' pconn_dconn_template ' ' A{i} ' ' dconn_vs_atlas] % A{i} '_to_' template_name '.' suffix]
         execute_display_and_clear(cmd, cmd);
     else
-        dconn_vs_atlas = [A{i} '_to_' pconn_dconn_template_basename '.dscalar.nii already exists']
+        dconn_vs_atlas = [A{i} '_to_' pconn_dconn_template_basename '.' suffix ' already exists']
     end
     
     %add option to delete matrices after making scalars
@@ -68,7 +68,7 @@ for i = 1:length(A)
        disp(['keeping ' msg])
     end
     
-    %scalar_paths = [scalar_paths; strcat({pwd}, '/', {subject_conn_conc}, '_', {num2str(i)}, '_to_', {pconn_dconn_template}, '.', {suffix})]; %for scalar conc file
+    % scalar_paths = [scalar_paths; strcat({pwd}, '/', {subject_conn_conc}, '_', {num2str(i)}, '_to_', {pconn_dconn_template}, '.', {suffix})]; %for scalar conc file
     scalar_paths = [scalar_paths; strcat(out_conn_path_pt1, {template_name}, '.', {suffix})]; %for scalar conc file 
 end
 Summary_of_pairwise = [num2str(i),'  total scalars made from subject list.'];
@@ -86,7 +86,7 @@ for row = 1:nrows
     fprintf(fileID, '%s\n', scalar_paths{row,:});
 end
 fclose(fileID);
-%clear concname scalar_paths
+% clear concname scalar_paths
 end
 
 

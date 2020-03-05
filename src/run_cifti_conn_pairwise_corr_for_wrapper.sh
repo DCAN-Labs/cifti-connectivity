@@ -15,7 +15,6 @@ fi
 if [ ! -d $TMPDIR/$USER ]; then
     mkdir $TMPDIR/$USER
 fi
-export MCR_CACHE_ROOT=$TMPDIR/$USER
 echo "------------------------------------------"
 if [ "x$1" = "x" ]; then
   echo Usage:
@@ -37,7 +36,7 @@ else
       args="${args} \"${token}\"" 
       shift
   done
-  eval "\"${exe_dir}/cifti_conn_matrix_for_wrapper\"" $args
+  eval "\"${exe_dir}/cifti_conn_pairwise_corr_for_wrapper\"" $args
 fi
 exit
 

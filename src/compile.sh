@@ -9,11 +9,11 @@
 #rm -rf ${FNL_preproc_dir}/specific_filtered_movement_regressors
 
 
-#/mnt/max/software/MATLAB/R2016b/bin/mcc -v -m -R -singleCompThread -R -nodisplay -o cifti_conn_matrix_for_wrapper cifti_conn_matrix_for_wrapper.m -a /mnt/max/shared/code/internal/utilities/hcp_comm_det_damien/isthisanoutlier.m
-#/mnt/max/software/MATLAB/R2016b/bin/mcc -v -m -R -singleCompThread -R -nodisplay -o cifti_conn_template_for_wrapper cifti_conn_template_for_wrapper.m -a /mnt/max/shared/code/internal/utilities/cifti_conn_wrapper/src/cifti_conn_matrix_for_wrapper.m -a /mnt/max/shared/code/internal/utilities/cifti_conn_wrapper/src/isthisanoutlier.m
+/mnt/max/software/MATLAB/R2016b/bin/mcc -v -m -R -singleCompThread -R -nodisplay -o cifti_conn_matrix_for_wrapper cifti_conn_matrix_for_wrapper.m -a /mnt/max/shared/code/internal/utilities/hcp_comm_det_damien/isthisanoutlier.m
+/mnt/max/software/MATLAB/R2016b/bin/mcc -v -m -R -singleCompThread -R -nodisplay -o cifti_conn_template_for_wrapper cifti_conn_template_for_wrapper.m -a /mnt/max/shared/code/internal/utilities/cifti_conn_wrapper/src/cifti_conn_matrix_for_wrapper.m -a /mnt/max/shared/code/internal/utilities/cifti_conn_wrapper/src/isthisanoutlier.m
 #/mnt/max/software/MATLAB/R2016b/bin/mcc -v -m -R -singleCompThread -R -nodisplay -o cifti_conn_template_exaversion cifti_conn_template_exaversion.m -a /mnt/max/shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_matrix_exaversion.m -a /mnt/max/shared/code/internal/utilities/hcp_comm_det_damien/isthisanoutlier.m
 #/mnt/max/software/MATLAB/R2016b/bin/mcc -v -m -R -singleCompThread -R -nodisplay -o cifti_conn_matrix_exaversion cifti_conn_matrix_exaversion.m -a /mnt/max/shared/code/internal/utilities/hcp_comm_det_damien/isthisanoutlier.m
-/mnt/max/software/MATLAB/R2016b/bin/mcc -v -m -R -singleCompThread -R -nodisplay -o cifti_conn_pairwise_corr_for_wrapper cifti_conn_pairwise_corr_for_wrapper.m -a /mnt/max/shared/code/internal/utilities/hcp_comm_det_damien/isthisanoutlier.m 
+#/mnt/max/software/MATLAB/R2016b/bin/mcc -v -m -R -singleCompThread -R -nodisplay -o cifti_conn_pairwise_corr_for_wrapper cifti_conn_pairwise_corr_for_wrapper.m -a /mnt/max/shared/code/internal/utilities/hcp_comm_det_damien/isthisanoutlier.m 
 #/mnt/max/software/MATLAB/R2016b/bin/mcc -v -m -R -singleCompThread -R -nodisplay -o cifti_conn_template_parallel cifti_conn_template_parallel.m -a /mnt/max/shared/code/internal/utilities/hcp_comm_det_damien/cifti_conn_matrix_exaversion.m -a /mnt/max/shared/code/internal/utilities/hcp_comm_det_damien/isthisanoutlier.m 
 
 #${MCC_FILE} -v -m -R -singleCompThread -R -nodisplay -o filtered_movement_regressors           ${FNL_preproc_dir}/filtered_movement_regressors.m           -a ${HCP_Mat_Path} -a ${FNL_preproc_dir}/scripts

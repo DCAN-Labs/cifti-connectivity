@@ -2,19 +2,23 @@ function outfile = cifti_conn_matrix_for_wrapper(wb_command, ...
     dt_or_ptseries_conc_file, series, motion_file, FD_threshold, TR, ...
     minutes_limit, smoothing_kernel, left_surface_file, ...
     right_surface_file, bit8, remove_outliers, additional_mask, ...
-    make_dconn_conc, output_directory, dtseries_conc)
+    make_dconn_conc, output_directory, dtseries_conc, vector_censor)
 % This script is a modularized version of cifti_conn_matrix_exaversion, 
 % except that it also accepts and uses these parameters: remove_outliers, 
 % additional_mask, and make_dconn_conc.
 
 %% Parameter definitions
-% dt_or_ptseries_conc_file = dense timeseries or parcellated timeseries conc file (i.e. text file with paths to each file being examined
-% series = 'dtseries' or 'ptseries'; specify if files are dense or parcellated
-% motion_file = conc file that points to FNL motion mat files for each dt or ptseries (note: if no motion file to be used, type 'none')
+% dt_or_ptseries_conc_file = dense timeseries or parcellated timeseries
+%     conc file (i.e. text file with paths to each file being examined
+% series = 'dtseries' if files are parcellated files or 'ptseries' if not
+% motion_file = conc file that points to FNL motion mat files for each dt 
+%     or ptseries (note: if no motion file to be used, type 'none')
 % FD threshold = specify motion threshold (e.g. 0.2)
 % TR = Repetition time of your data
-% minutes_limit = specify the number of minutes to be used to generate the correlation matrix
-% smoothing_kernal = specify smoothing kernal (note: if no smoothing file to be used, type 'none')
+% minutes_limit = specify the number of minutes to be used to generate the
+%     correlation matrix
+% smoothing_kernal = specify smoothing kernal (note: if no smoothing file 
+%     to be used, type 'none')
 % bit8 = set to 1 if you want to make the outputs smaller in 8bit
 
 %% Input validation
@@ -84,9 +88,9 @@ else
     return
 end
 
-disp(smoothing_kernel)
-%% prealocate memory if you want to do smoothing
+%% preallocate memory if you want to do smoothing
 if ~strcmpi(smoothing_kernel, 'none')
+    disp(['Smoothing kernel: ' smoothing_kernel])
     A_smoothed = num2cell(zeros(size(A)));
     C = get_surface_files('left', left_surface_file, conc);
     D = get_surface_files('right', right_surface_file, conc);
@@ -122,20 +126,12 @@ else % use motion censoring
     stdev_temp_filename=[output_directory orig_conc_file '_temp.txt'];
     B = import_conc_or_file(motion_file, conc);
     
-    %Make sure length of motion files matches length of timeseries
+    % Verify that motion files exist and their length matches timeseries'
     if length(A) ~= length(B)
         disp(['Length of motion .conc file does not match length of ' ...
               'series .conc file.'])
     end
-    
-    % Check that all motion files in conc file exist
-    for i = 1:length(B)
-        if ~exist(B{i}, 'file')
-            disp(['Motion file ' num2str(i) ' does not exist'])
-            return 
-        end
-    end
-    disp('All motion files exist. Continuing ...')
+    verify_paths_exist(B, 'Motion');
     
     %% Generate motion vector for subject and generate correlation matrix
     for i = 1:length(B)
@@ -164,7 +160,7 @@ else % use motion censoring
                 outlier_rmv_file, stdev_temp_filename, wb_command, 30); 
             
         else  % Use power 2014 motion
-            FDvec = get_FDvec(B{i}, FD_threshold);
+            FDvec = get_FDvec(B{i}, FD_threshold, vector_censor);
             if no_output
                 output_directory = char(inputB_directory);
             end
@@ -273,7 +269,7 @@ if make_dconn_conc
      subjectswithoutenoughdata] = sort_paths(A, motion_file_obj, ...
         dtseries_E, FD_threshold, minutes_limit, motion_file, ...
         no_output, output_directory, remove_outliers, smoothing, ...
-        stdev, suffix2, TR, wb_command, additional_mask);
+        stdev, suffix2, TR, wb_command, additional_mask, vector_censor);
     
     % Save all of those path lists into .conc files
     finish_and_save_concs(A, FD_threshold, minutes_limit, ...
@@ -300,19 +296,23 @@ end
 
 
 function [paths, conc] = get_paths_from_conc(conc_file)
-    % Check to see if there 1 subject or a list of subjects in conc file.
+    % Check if conc_file is 1 subject or a list of them; verify all subjects
     conc = strsplit(conc_file, '.');
     conc = char(conc(end));
     paths = import_conc_or_file(conc_file, conc);
+    verify_paths_exist(paths, 'Subject series');
+end
 
-    % Validate that all paths in .conc file point to real files
+
+function verify_paths_exist(paths, to_what)
+    % Validate that all paths point to real files
     for i = 1:length(paths)
         if ~exist(paths{i}, 'file')
-            disp(['Subject series ' num2str(i) ' does not exist.'])
+            disp([to_what ' file ' num2str(i) ' does not exist.'])
             return
         end
     end
-    disp('All series files exist. Continuing ...')
+    disp([to_what ' files all exist. Continuing...'])
 end
 
 
@@ -327,17 +327,9 @@ end
 
 
 function surface_files = get_surface_files(LR, surface_conc, conc)
-    % Get all paths to surface files
+    % Get and validate all paths to surface files
     surface_files = import_conc_or_file(surface_conc, conc);
-    
-    % Check to make sure surface files exist
-    for i = 1:length(surface_files)
-        if ~exist(surface_files{i}, 'file')
-            disp(['Subject ' LR ' surface ' num2str(i) ' does not exist'])
-            return
-        end
-    end
-    disp(['All ' LR ' surface files for smoothing exist. Continuing ...'])
+    verify_paths_exist(surface_files, ['Subject ' LR ' surface']);
 end
 
 
@@ -429,9 +421,9 @@ end
 
 
 function [all_frames, at_thresh, at_thr_min_lim, without] = sort_paths(...
-        A, B, dtseries_E, FD_threshold, minutes_limit, ...
-        motion_file, no_output, output_directory, remove_outliers, ...
-        smoothed, stdev_temp_filename, suffix2, TR, wb_command, mask)
+        A, B, dtseries_E, FD_threshold, minutes_limit, motion_file, ...
+        no_output, output_directory, remove_outliers, smoothed, ...
+        stdev_temp_filename, suffix2, TR, wb_command, mask, vector_censor)
     % Build and return 4 lists of paths to connectivity matrix files, such
     % that each list contains matrices with a certain amount of good data 
     % compared to the minutes_limit and FD_threshold:
@@ -461,7 +453,7 @@ function [all_frames, at_thresh, at_thr_min_lim, without] = sort_paths(...
             all_frames = [all_frames; strcat({A_dir}, ...
                 '_all_frames_at_FD_', motion_file, '.', {suffix2})];
         else
-            FDvec = get_FDvec(B{i}, FD_threshold);
+            FDvec = get_FDvec(B{i}, FD_threshold, vector_censor);
             if strcmpi(dtseries_E, 'none')
                 dt = dtseries_E;
             else
@@ -479,13 +471,12 @@ end
 
 
 function FDvec = additional_frame_removal(additional_mask, dt, FDvec, ...
-    input_directory, orig_cifti_filename, remove_outliers, ...
-    stdev_temp_filename, wb_command)
+    input_directory, orig_cifti, remove_outliers, stdev_temp_filename, ...
+    wb_command)
     % additional frame removal depending on additional_mask
     if strcmpi(additional_mask, 'none')
-        FDvec = remove_frames_from_FDvec([input_directory ...
-                    orig_cifti_filename], FDvec, stdev_temp_filename, ...
-                    wb_command, 30);
+        FDvec = remove_frames_from_FDvec([input_directory orig_cifti], ...
+                    FDvec, stdev_temp_filename, wb_command, 30);
     else
         FDvec = add_mask_to_FDvec(FDvec, additional_mask);
         FDvec = remove_outliers_if(remove_outliers, FDvec, dt, ...
@@ -494,7 +485,7 @@ function FDvec = additional_frame_removal(additional_mask, dt, FDvec, ...
 end
 
 
-function FDvec = get_FDvec(file_with_FDvec, fd)
+function FDvec = get_FDvec(file_with_FDvec, fd, vector_censor)
     % Get FDvec from the file at file_with_FDvec
     load(file_with_FDvec)
     allFD = zeros(1, length(motion_data)); % motion_data is from file
@@ -502,18 +493,27 @@ function FDvec = get_FDvec(file_with_FDvec, fd)
         allFD(j) = motion_data{j}.FD_threshold;
     end
     FDidx = find(allFD == fd);
-    FDvec = motion_data{FDidx}.frame_removal;
+    
+    % Added by Greg Conan 2020-03-04 for different vector_censor options
+    vector_field = [vector_censor '_removal'];
+    if isfield(motion_data{FDidx}, vector_field)
+        FDvec = motion_data{FDidx}.(vector_field);
+    else
+        disp(['Error: ' file_with_FDvec ' does not include ' ...
+              vector_field ' censoring option.']) 
+        return
+    end
     FDvec = abs(FDvec-1);
 end
 
 
 function FDvec = remove_outliers_if(remove_outliers, FDvec, filename, ...
-    stdev_temp_filename, wb_command, wait)
+    stdev_temp_filename, wb_command, wait_time)
     % Remove outliers from external mask if user said to; otherwise pass
     if remove_outliers && ~strcmpi(filename, 'none')
         disp(['Removing outliers using .dtseries file ' filename])
         FDvec = remove_frames_from_FDvec(filename, FDvec, ...
-            stdev_temp_filename, wb_command, wait);
+            stdev_temp_filename, wb_command, wait_time);
         
     else  % exist('remove_outliers','var') == 1 && remove_outliers == 0;
         disp(['Motion censoring performed on FD alone. '...
@@ -539,25 +539,25 @@ end
 
 
 function FDvec = remove_frames_from_FDvec(cifti_file, FDvec, ...
-        stdev, wb_command, wait)
+        stdev, wb_command, wait_time)
     % additional frame removal based on Outliers command: isoutlier with
     % "median" method.
     cmd = [wb_command ' -cifti-stats ' char(cifti_file) ...
            ' -reduce STDEV > ' stdev];
     system(cmd);
-    if wait > 0
-        disp(['Waiting ' num2str(wait) ' seconds for writing of temp ' ...
+    if wait_time > 0
+        disp(['Waiting ' num2str(wait_time) ' seconds for writing of temp ' ...
               'file before reading. (not an error)'])
-        pause(wait);
+        pause(wait_time);
     end
     clear cmd
     STDEV_file=load(stdev); % load stdev of .nii file.
-    FDvec_keep_idx = find(FDvec==1); %find frames kept from the FD mask
+    FDvec_keep_idx = find(FDvec==1); % find frames kept from the FD mask
     
     % find outlier
     Outlier_file=isthisanoutlier(STDEV_file(FDvec_keep_idx), 'median'); 
-    Outlier_idx=find(Outlier_file==1); %find outlier indices
-    FDvec(FDvec_keep_idx(Outlier_idx)) = 0; %set outliers to zero in FDvec
+    Outlier_idx=find(Outlier_file==1); % find outlier indices
+    FDvec(FDvec_keep_idx(Outlier_idx)) = 0; % set outliers to zero in FDvec
     clear STDEV_file FDvec_keep_idx Outlier_file Outlier_idx
 end
 

@@ -6,6 +6,15 @@
 #
 exe_name=$0
 exe_dir=`dirname "$0"`
+if [ "x$TMPDIR" = "x" ]; then
+    export TMPDIR=./tmp
+fi 
+if [ ! -d $TMPDIR ]; then
+    mkdir -p $TMPDIR;
+fi
+if [ ! -d $TMPDIR/$USER ]; then
+    mkdir $TMPDIR/$USER
+fi
 echo "------------------------------------------"
 if [ "x$1" = "x" ]; then
   echo Usage:

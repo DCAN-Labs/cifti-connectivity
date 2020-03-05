@@ -9,6 +9,7 @@ Run `cifti_conn_wrapper.py` to generate correlation matrices from BOLD dense or 
 Clone this repository and save it somewhere on the Linux system that you want to use it from.
 
 ### Dependencies
+
 - [Python v3.5.2](https://www.python.org/downloads/release/python-352) or greater
 - MathWorks [MATLAB Runtime Environment (MRE) version 9.1 (2016b)](https://www.mathworks.com/products/compiler/matlab-runtime.html)
 - Washington University [Workbench Command (wb_command)](https://github.com/Washington-University/workbench)
@@ -24,6 +25,7 @@ None of the time series files listed in the `.conc` files should have exactly th
 If you want to run this wrapper on only one subject session, you do not need to use a `.conc` file. Instead, you can use the file paths that would have gone into the `.conc` files directly. For example, you can use your `*.ptseries.nii` file path for the `series-file` argument, the `*power_2014_FD_only.mat` file for the `--motion` argument, etc.
 
 ### Expected Naming Convention for Input Imaging Data
+
 This wrapper processes dense (`dtseries`) or parcellated (`ptseries`) time series data. For dtseries, each subject session is expected to have one file following the naming convention `XXXXX_Atlas.dtseries.nii`. Smoothing will create an additional dtseries called `XXXX_Atlas_SMOOTHED.dtseries.nii`.
 
 ## Usage
@@ -57,8 +59,13 @@ For more usage information, call this script with the `--help` command: `python3
 #### Simplest Usage
 
 Since only the four positional argument are technically required, this is a valid command:
-```
-python3.5 cifti_conn_wrapper.py ./raw/group_ptseries.conc 2.5 ./data/ matrix
+
+```sh
+series_conc=./raw/group_ptseries.conc
+tr=2.5
+output=./data/
+mode=matrix
+python3.5 cifti_conn_wrapper.py ${series_conc} ${tr} ${output} ${mode}
 ```
 
 However, running with no optional arguments will not do any motion correction or smoothing. It will also include subject sessions with any amount of good data.
@@ -67,8 +74,12 @@ However, running with no optional arguments will not do any motion correction or
 
 Here is a common use case of the `cifti_conn_wrapper` in `matrix` mode:
 
-```
-python3.5 cifti_conn_wrapper.py --motion raw/round1_motion.conc --mre-dir /home/code/MATLAB_MCR/v91 --wb-command /home/code/workbench/bin_linux64/wb_command --minutes 4 --fd-threshold 0.3 /home/data/processed/round1_ptseries.conc 2.5 /home/data/processed matrix
+```sh
+wb_path=/home/code/workbench/bin_linux64/wb_command
+fd_thresh=0.3
+mre=/home/code/MATLAB_MCR/v91
+motion=raw/round1_motion.conc
+python3.5 cifti_conn_wrapper.py ${series_conc} ${tr} ${output} matrix --motion ${motion} --mre-dir ${mre} --wb-command ${wb_path} --minutes 4 --fd-threshold ${fd_thresh}
 ```
 
 This case includes the 4 required arguments, as well as the `fd-threshold`, `minutes`, `motion`, `mre-dir`, and `wb-command` optional arguments.
@@ -76,7 +87,8 @@ This case includes the 4 required arguments, as well as the `fd-threshold`, `min
 #### Multiple Modes
 
 This wrapper can run any combination of the three modes in any order. To run multiple modes, list all of their names in the order that you want the wrapper to run them. Here is an example command which will run all three scripts in order:
-```
+
+```sh
 python3.5 cifti_conn_wrapper.py ./raw/group_ptseries.conc 4 ./data/ matrix template pairwise_corr
 ```
 
@@ -140,8 +152,6 @@ These arguments can be included without a value.
 
 Each of the arguments below accepts one value, a valid file or directory path. Each argument has a default value, but the user can optionally specify a different path.
 
-- `--input` takes a path to the directory containing all input `.conc` files. By default, this will be the directory containing `series-file`.
-
 - `--motion` takes the name of a `.conc` text file listing paths pointing to FNL motion mat files for each dt or ptseries. This flag is necessary for motion correction, since by default the wrapper will not do any motion correction.
 
 - `--left` and `--right` take the `.conc` file name of subjects' left and right midthickness files, respectively. These arguments are only needed for smoothing. If these flags are included without filenames is given, then `ADHD_DVARS_group_left`/`right_midthickness_surfaces.conc` will be used as the default name. If only a filename is given, then the wrapper will look for the file in the `--input` directory. However, this argument also accepts absolute paths.
@@ -159,7 +169,9 @@ These arguments only apply to the second and last run modes, `template` and `pai
 - `--template` takes the full path to a template file created by running `template` mode. If `pairwise_corr` mode is run before `template` mode, then the `--template` file should already exist at the specified path. By default, the wrapper will build the name of this file by combining the values of the `series-file`, `--motion`, `--fd-threshold`, and `--minutes` arguments. The wrapper will then create, or look for, a file by that name in the `output` directory if needed.
 
 ## Outputs
+
 Within the output folder, here is what the outputs will look like:
+
 - The output of `cifti_conn_matrix` will look like `./data/XXXXXX-X_FNL_preproc_Gordon_subcortical.ptseries.nii_5_minutes_of_data_at_FD_0.2.pconn.nii`
 - The output of `cifti_conn_template` will look like `./data/dtseries_AVG.dconn.nii`
 - The output of `cifti_conn_pairwise_corr` will look like `./data/XXXXXX-X_FNL_preproc_Gordon_subcortical.ptseries.nii_5_minutes_of_data_at_FD_0.2.pconn.nii`
@@ -175,38 +187,48 @@ The `time-series` argument passed to `cifti_conn_matrix` is either 'dtseries' or
 To avoid conflating multiple files with the same name listed in the input `.conc`, for each connectivity matrix, this wrapper generates a random hash composed of the first character of each folder name in its `.d`/`ptseries.nii` file's path. The wrapper also appends the first 5 characters of the `.d`/`ptseries.nii` file name. This gives each output connectivity matrix a unique but consistent filename.
 
 ### cifti_conn_template_for_wrapper
+
 This code builds a template d/pconn from a list of d/ptseries. If the d/pconn exists, if will load it instead of making it anew (calls `cifti_conn_matrix_for_wrapper`). It takes the same arguments from the wrapper as `cifti_conn_matrix_for_wrapper`, as well as `keep-conn-matrices`.
 
 ### cifti_conn_pairwise_corr_exaversion
+
 This compares the connectivity matrix of each individual to the template (see `cifti_conn_template_for_wrapper`), and provides a vector where each element is the correlation of connectivity to that greyorindate/parcellation. It takes these arguments from the wrapper: `template`, `p`-or-`dconn`, `make-conn-conc`, and `keep-conn-matrices`.
 
 The `p`-or-`dconn` argument passed to `cifti_conn_pairwise_corr_exaversion` is simply the `time-series` argument reformatted: `dtseries` becomes `dconn`, and `ptseries` becomes `pconn`. By default, the wrapper builds the name of the `matrices-conc` file by combining the `series-file`, `time-series`, `minutes`, and `fd-threshold` arguments.
 
 ## Known Issues
-  - The code added a pause function each time it computes outliers.  The pause function was added because sometimes the outlier file was read before it was done being written.
-  - The outlier file persists after creation (currently saved as `dtseries_temp.txt`.  This file need to be deleted as part of regular clean-up, but has not been implemeneted.
+
+- The code added a pause function each time it computes outliers.  The pause function was added because sometimes the outlier file was read before it was done being written.
+- The outlier file persists after creation (currently saved as `dtseries_temp.txt`.  This file need to be deleted as part of regular clean-up, but has not been implemeneted.
 
 ## Recent Updates
-  - v1: added to make a "all-frames" dconn (using "none" as minutes limit). This will make dconns from subjects with differing amounts of time series data, but for subjects with a considerable amounts of data, this becomes less of an issue.
-  	-  added an option to keep dconns in cifti_conn_template.m rather then automatically deleting them.
+
+- v1: added to make a "all-frames" dconn (using "none" as minutes limit). This will make dconns from subjects with differing amounts of time series data, but for subjects with a considerable amounts of data, this becomes less of an issue.
+  - added an option to keep dconns in cifti_conn_template.m rather then automatically deleting them.
 
 ### 4/26/2019
+
 - v1: add an option to remove outliers from the bold signal.
 - Added an option to provide an additional mask in addition  to the FD mask provided.  This allows one to use periods of rest between tasks.
 - Added an option to not make a list of dconns after running.  When running this code in parallel often it would created many small files.
 
 ### 7/3/2019
+
 - Wrote Python CLI wrapper to run all three scripts, wrote documentation for the wrapper, and reorganized directory structure
 
 ### 8/23/2019
+
 - Fixed a bug where the wrapper would not run unless connectivity matrix list `.conc` file already exited, even though the wrapper includes the functionality to make that list.
 
 ### 11/1/2019
-- Fixed a bug where `cifti-conn-matrix` would treat two different files with the same name in different folders as if they were the same file, skipping over one. Also, updated README to reflect that --remove-outliers, --additional-mask, and --make-conn-conc were added.
+
+- Fixed a bug where `cifti-conn-matrix` would treat two different files with the same name in different folders as if they were the same file, skipping over one. Also, updated README to reflect that `--remove-outliers`, `--additional-mask`, and `--make-conn-conc` were added.
 
 ### 11/13/2019
+
 - Added the `--dtseries` parameter.
 - Updated description of how the hash appended to each connectivity matrix filename is generated.
 
 ## Feature Requests
- - https://trello.com/b/hQkyYits/robo-science
+
+- [Robo-Science Trello Board](https://trello.com/b/hQkyYits/robo-science)

@@ -1,4 +1,4 @@
-function cifti_conn_template_for_wrapper(wb_command, dt_or_ptseries_conc_file, series, motion_file, FD_threshold, TR, minutes_limit, smoothing_kernel, left_surface_file, right_surface_file, bit8, remove_outliers, additional_mask, make_dconn_conc, output_directory, dtseries_conc, keep_conn_matrices, template_file)
+function cifti_conn_template_for_wrapper(wb_command, dt_or_ptseries_conc_file, series, motion_file, FD_threshold, TR, minutes_limit, smoothing_kernel, left_surface_file, right_surface_file, bit8, remove_outliers, additional_mask, make_dconn_conc, output_directory, dtseries_conc, vector_censor, keep_conn_matrices, template_file)
 % wb_command = workbench command path
 % dt_or_ptseries_conc_file = dense timeseries or parcellated timeseries conc
 % file (i.e. text file with paths to each file being included
@@ -75,7 +75,7 @@ end
 %% Check to see if surface files exist
 %check to make sure there is a list of subjects in conc file.
 if is_none(smoothing_kernel)
-    Note = ['No smoothing, continuing...'];
+    disp('No smoothing, continuing...')
     if is_conc(dt_or_ptseries_conc_file)
         left = left_surface_file;
         right = right_surface_file;
@@ -85,8 +85,8 @@ if is_none(smoothing_kernel)
         return
     end
 else
-    C = import_conc_or_file(left_surface_file, 'subject left surface')
-    D = import_conc_or_file(right_surface_file, 'subject right surface')
+    C = import_conc_or_file(left_surface_file, 'subject left surface');
+    D = import_conc_or_file(right_surface_file, 'subject right surface');
     left = C{1};
     right = D{1};
 end
@@ -115,7 +115,7 @@ if isempty(paths)
         wb_command, A{1}, series, motion_B, num2str(FD_threshold), ...
         TR, minutes_limit, smoothing_kernel, left, right, bit8, ...
         remove_outliers, additional_mask, make_dconn_conc, ...
-        output_directory, dtseries_conc ...
+        output_directory, dtseries_conc, vector_censor ...
     ));
 else
     dconn_paths = char(get_already_existing_matrix(paths, already_added));
@@ -143,7 +143,7 @@ for i = 2:length(A)
             wb_command, A{i}, series, motion_B, num2str(FD_threshold), ...
             TR, minutes_limit, smoothing_kernel, left, right, bit8, ...
             remove_outliers, additional_mask, make_dconn_conc, ...
-            output_directory, dtseries_conc ...
+            output_directory, dtseries_conc, vector_censor ...
         ));
     else
         dconn_paths = char(get_already_existing_matrix(paths, ...
@@ -295,11 +295,11 @@ end
 function rename_avg_dconn(paths, output_conc, keep_conn_matrices, suffix2)
     % Add the word "AVG" to average matrix to not overwrite the originals
     if keep_conn_matrices
-        cmd = 'cp '
+        cmd = 'cp ';
     else
-        cmd = 'mv '
+        cmd = 'mv ';
     end
-    system([cmd paths ' ' output_conc '_AVG.' suffix2])
+    system([cmd paths ' ' output_conc '_AVG.' suffix2]);
 end
 
 

@@ -113,6 +113,7 @@ There are three kinds of options: Server-dependent flags used by all 3 run modes
 | `--remove-outliers`    | Y      | Y        |               |
 | `--smoothing-kernel`   | Y      | Y        |               |
 | `--suppress-warnings`  | Y      | Y        |               |
+| `--vector-censor`      | Y      | Y        |               |
 | `--keep-conn-matrices` |        | Y        | Y             |
 | `--template`           |        | Y        | Y             |
 
@@ -147,6 +148,8 @@ These arguments can be included without a value.
 - `--beta8` will run a beta version to reduce file size. Include this argument to reduce floating point precision and discard lower triangle of matrix. Exclude it to leave the same.  If included, this will produce 8Gb `.dconns`. Otherwise, this will make 33Gb `.dconns`. This option does nothing for `ptseries`.
 
 - `--suppress-warnings` will prevent the wrapper from asking user for confirmation if the `.dconn` files created by the wrapper will exceed a certain threshold. By default, the wrapper will warn the user if it will create files totaling over 100 GB. This argument does nothing for `ptseries`.
+
+- `--vector-censor` allows the user to choose the vector censoring/removal option for motion data. The default option , `combined` removal, will combine `Power_2014_FD_only` vector censoring (`fd`) with outlier vector censoring (`outlier`). The options are `outlier`, `fd`, `combined`, and `frame` removal. This argument only affects motion correction, so it does nothing unless the `--motion` flag is included.
 
 #### Directory and File Path Flags
 
@@ -201,7 +204,7 @@ The `p`-or-`dconn` argument passed to `cifti_conn_pairwise_corr_exaversion` is s
 - The code added a pause function each time it computes outliers.  The pause function was added because sometimes the outlier file was read before it was done being written.
 - The outlier file persists after creation (currently saved as `dtseries_temp.txt`.  This file need to be deleted as part of regular clean-up, but has not been implemeneted.
 
-## Recent Updates
+## Updates
 
 - v1: added to make a "all-frames" dconn (using "none" as minutes limit). This will make dconns from subjects with differing amounts of time series data, but for subjects with a considerable amounts of data, this becomes less of an issue.
   - added an option to keep dconns in cifti_conn_template.m rather then automatically deleting them.
@@ -228,6 +231,10 @@ The `p`-or-`dconn` argument passed to `cifti_conn_pairwise_corr_exaversion` is s
 
 - Added the `--dtseries` parameter.
 - Updated description of how the hash appended to each connectivity matrix filename is generated.
+
+### 3/5/2020
+
+- Added the `--vector-censor` parameter.
 
 ## Feature Requests
 

@@ -190,9 +190,10 @@ def get_cli_args():
         "--vector-censor",
         choices=censoring_options,
         default=censoring_options[0],
-        help=("Choose vector censoring/removal option. The default option, "
-              "{}, will combine Power_2014_FD_only vector censoring ('fd') "
-              "with outlier vector censoring ('outlier'). The options are {}"
+        help=("Choose vector censoring/removal option for motion data. The "
+              "default option, {}, will combine Power_2014_FD_only vector "
+              "censoring ('fd') with outlier vector censoring ('outlier'). The"
+              " options are {}. This argument only affects motion correction."
               .format(censoring_options[0], censoring_options))
     )
 
@@ -497,8 +498,7 @@ def cifti_conn_template(cli_args):
     # Call cifti_conn_template script
     subprocess.check_call((local_path_to("src", get_script_filename(1)),
                            *get_matrix_or_template_parameters(cli_args),
-                           keep_conn_matrices,
-                           cli_args.template))
+                           keep_conn_matrices, cli_args.template))
 
 
 def has_only_conn_paths(file_path):
@@ -552,4 +552,3 @@ def cifti_conn_pairwise_corr(cli_args):
 
 if __name__ == '__main__':
     main()
-    

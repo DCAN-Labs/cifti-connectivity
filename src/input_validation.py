@@ -4,7 +4,7 @@
 Input validation functions source 
 Greg Conan: conan@ohsu.edu
 Created 2020-03-04
-Updated 2020-03-04
+Updated 2021-03-29
 """
 
 ##################################
@@ -131,6 +131,14 @@ def validate_cli_args(cli_args, parser):
         cli_args = try_to_validate_file_arg(
             arg, globals()["validate_and_get_" + arg], cli_args, parser
         )
+
+    # If user is smoothing, then ensure that midthickness surfaces were given
+    if getattr(cli_args, "smoothing_kernel", "none") != "none":
+        for arg in ("left", "right"):
+            file_arg = getattr(cli_args, arg, None)
+            if file_arg == "none" or not os.path.exists(file_arg):
+                parser.error("Invalid --{0} argument. --{0} is "
+                             "needed for smoothing.".format(arg))
 
     # Validate that all .conc file inputs have an equal number of lines
     validate_concs_same_length([k for k, v in vars(cli_args).items()

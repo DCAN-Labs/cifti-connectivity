@@ -1,4 +1,4 @@
-function outfile = cifti_conn_matrix_for_wrapper_continous(wb_command, ...
+function [dconn_outfile_path, motion_mask_path] = cifti_conn_matrix_for_wrapper_continous(wb_command, ...
     dt_or_ptseries_conc_file, series, motion_file, FD_threshold, TR, ...
     minutes_limit, smoothing_kernel, left_surface_file, ...
     right_surface_file, bit8, remove_outliers, additional_mask_conc,  ...
@@ -52,6 +52,8 @@ minutes_limit = make_numeric(minutes_limit, 'Minutes limit');
 remove_outliers = make_numeric(remove_outliers, 'Outlier removal');
 smoothing_kernel = make_numeric(smoothing_kernel, 'Smoothing kernel');
 use_continous_minutes =make_numeric(use_continous_minutes, 'use continous minutes');
+
+reset(RandStream.getGlobalStream,sum(100*clock)); % added to ensure randomness of frame sampling during parellization -RH 05/30/2023
 
 if (~strcmpi(smoothing_kernel, 'none')) && (strcmpi(series, 'ptseries'))
     disp('Check your settings. Smoothing not allowed on ptseries.');
@@ -140,7 +142,7 @@ if strcmpi(motion_file, 'none') % run this if no motion censoring
             right = D{i};
         end
         min_file_end = '_cifti_censor_FD_vector_All_Good_Frames.txt';
-        [A_smoothed{i}, outfile] = minutes_limit_calculation(...
+        [A_smoothed{i}, dconn_outfile_path] = minutes_limit_calculation(...
             FD_threshold, input_directory, left, '_all_frames_at_', ...
             min_file_end, motion_file, orig_cifti_filename, 'none', ...
             output_directory, output_precision, right, ...
@@ -216,7 +218,7 @@ else % use motion censoring
         if strcmpi(minutes_limit, 'none')            
             min_cmd_part = '_all_frames_at_';
             min_file_end = '_cifti_censor_FD_vector_All_Good_Frames.txt';
-            save_out_file(output_directory, orig_motion_filename, ...
+            motion_mask_path = save_out_file(output_directory, orig_motion_filename, ...
                           FD_threshold, min_file_end, FDvec);
         else
             % Get the number of good minutes in your data
@@ -228,14 +230,16 @@ else % use motion censoring
             if good_minutes < 0.5
                 disp(['Subject ' num2str(i) ' has less than 30 ' ...
                       'seconds of good data.'])
-            
+            min_cmd_part = 'NA';
+            min_file_end = 'lessthan30secs.txt';
+            motion_mask_path ='NA';
             % if there is not enough data for your subject, just generate 
             % the matrix with all available frames
             elseif minutes_limit > good_minutes 
                 min_cmd_part = '_all_frames_at_';
                 min_file_end = ['_cifti_censor_FD_vector_All_Good_' ...
                                 'Frames.txt'];
-                save_out_file(output_directory, orig_motion_filename, ...
+                motion_mask_path = save_out_file(output_directory, orig_motion_filename, ...
                               FD_threshold, min_file_end, FDvec);
             
             % if there is enough data, match the amount of data used for
@@ -266,7 +270,7 @@ else % use motion censoring
                                 '_minutes_of_data_at_'];
                 min_file_end = ['_cifti_censor_FD_vector' min_cmd_part ...
                                 num2str(FD_threshold) '_threshold.txt'];
-                save_out_file(output_directory, orig_motion_filename, ...
+                motion_mask_path = save_out_file(output_directory, orig_motion_filename, ...
                               FD_threshold, min_file_end, FDvec_cut);
             else
                 disp(['Something is wrong about the number of good ' ...
@@ -283,7 +287,7 @@ else % use motion censoring
                 left = C{i};
                 right = D{i};
             end
-            [A_smoothed{i}, outfile] = minutes_limit_calculation(...
+            [A_smoothed{i}, dconn_outfile_path] = minutes_limit_calculation(...
                 FD_threshold, input_directory, left, min_cmd_part, ...
                 min_file_end, motion_file, orig_cifti_filename, ...
                 orig_motion_filename, output_directory, ...
@@ -292,6 +296,9 @@ else % use motion censoring
             if strcmpi(smoothing_kernel, 'none')
                 clear A_smoothed
             end
+        else
+            disp('Outfile name is NA, becauase subject has less than 30 seconds of data.')
+            dconn_outfile_path = 'NA'
         end        
     end
 end
@@ -668,10 +675,11 @@ end
 
 
 
-function save_out_file(out_dir, orig_motion, fd, min_file_end, FDvec)
+function motion_mask_path = save_out_file(out_dir, orig_motion, fd, min_file_end, FDvec)
     % Build output file name and save it
-    fileID = fopen([char(out_dir) char(orig_motion) '_' num2str(fd) ...
-                    min_file_end], 'w');
+    motion_mask_path = [char(out_dir) char(orig_motion) '_' num2str(fd) ...
+                    min_file_end];
+    fileID = fopen(motion_mask_path, 'w');
     fprintf(fileID, '%1.0f\n', FDvec);
     fclose(fileID);
 end
